@@ -1,0 +1,53 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Summary {
+  id              String         @id @default(cuid())
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  content         String
+  inputType       String        // 'url' or 'text'
+  inputContent    String        // The original URL or text input
+  sourceMetadata  SourceMetadata?
+  aiMetrics       AIMetrics?
+}
+
+model SourceMetadata {
+  id          String   @id @default(cuid())
+  author      String?
+  publishDate DateTime?
+  domain      String?
+  isVerified  Boolean  @default(false)
+  summaryId   String   @unique
+  summary     Summary  @relation(fields: [summaryId], references: [id], onDelete: Cascade)
+}
+
+model AIMetrics {
+  id              String   @id @default(cuid())
+  confidenceScore Float
+  processingTime  Float
+  wordCount       Int
+  summaryId       String   @unique
+  summary         Summary  @relation(fields: [summaryId], references: [id], onDelete: Cascade)
+}
+
+model VideoSummary {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  videoUrl    String
+  inputType   String   // 'url' or 'text'
+  inputContent String  // The original URL or text input
+}

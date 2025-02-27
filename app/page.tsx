@@ -17,11 +17,18 @@ interface SummaryData {
   };
 }
 
+type TabType = 'article' | 'video';
+
 export default function Home() {
+  const [activeTab, setActiveTab] = useState<TabType>('article');
   const [url, setUrl] = useState('');
+  const [customText, setCustomText] = useState('');
+  const [inputType, setInputType] = useState<'url' | 'text'>('url');
   const [summaryData, setSummaryData] = useState<SummaryData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [videoGenerated, setVideoGenerated] = useState(false);
+  const [videoUrl, setVideoUrl] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,26 +36,66 @@ export default function Home() {
     setError('');
 
     try {
-      const response = await fetch('/api/summarize', {
+      const endpoint = activeTab === 'article' ? '/api/summarize' : '/api/generate-video';
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ url }),
+        body: JSON.stringify({ 
+          url: inputType === 'url' ? url : null,
+          text: inputType === 'text' ? customText : null,
+          type: inputType
+        }),
       });
 
       const data = await response.json();
       
+      // Log the response for debugging
+      console.log('API Response:', { status: response.status, data });
+      
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to summarize');
+        throw new Error(data.error || 'Failed to process request');
       }
 
-      setSummaryData(data);
+      if (activeTab === 'article') {
+        // Check if data has the expected structure
+        if (data && data.summary && data.sourceMetadata && data.aiMetrics) {
+          setSummaryData(data);
+        } else {
+          throw new Error('Invalid response format from server');
+        }
+      } else {
+        if (data && data.videoUrl) {
+          setVideoUrl(data.videoUrl);
+          setVideoGenerated(true);
+        } else {
+          throw new Error('Invalid video response format from server');
+        }
+      }
     } catch (error) {
-      console.error('Error:', error);
-      setError('Failed to generate summary. Please try again.');
+      console.error('Request failed:', error);
+      setError(error instanceof Error ? error.message : 'An unexpected error occurred');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleTabChange = (tab: TabType) => {
+    setActiveTab(tab);
+    setError('');
+    setSummaryData(null);
+    setVideoGenerated(false);
+    setVideoUrl('');
+    setUrl('');
+    setCustomText('');
+  };
+
+  const clearInput = () => {
+    if (inputType === 'url') {
+      setUrl('');
+    } else {
+      setCustomText('');
     }
   };
 
@@ -82,55 +129,167 @@ export default function Home() {
             AI News Summarizer
           </h1>
           <p className="text-xl text-gray-600 dark:text-gray-300">
-            Get authenticated and verified summaries of articles in seconds
+            Get authenticated summaries in text or video format
           </p>
         </header>
 
         <main className="space-y-8">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8 backdrop-blur-lg bg-opacity-90">
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div>
-                <label 
-                  htmlFor="url" 
-                  className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2"
-                >
-                  Article URL
-                </label>
-                <div className="relative">
-                  <input
-                    type="url"
-                    id="url"
-                    value={url}
-                    onChange={(e) => setUrl(e.target.value)}
-                    placeholder="Paste article URL here"
-                    className="w-full p-4 border-2 border-gray-200 dark:border-gray-600 rounded-xl 
-                             focus:ring-2 focus:ring-blue-500 focus:border-transparent
-                             dark:bg-gray-700 dark:text-white transition-all duration-200
-                             placeholder-gray-400 text-lg"
-                    required
-                  />
-                </div>
-              </div>
+          {/* Tabs */}
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl overflow-hidden">
+            <div className="flex border-b border-gray-200 dark:border-gray-700">
               <button
-                type="submit"
-                disabled={loading}
-                className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-4 px-6 
-                         rounded-xl text-lg font-medium hover:opacity-90 transition-all duration-200
-                         disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed
-                         transform hover:-translate-y-0.5 active:translate-y-0
-                         shadow-lg hover:shadow-xl"
+                onClick={() => handleTabChange('article')}
+                className={`flex-1 py-4 px-6 text-center focus:outline-none transition-colors ${
+                  activeTab === 'article'
+                    ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white'
+                    : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
+                }`}
               >
-                {loading ? (
-                  <span className="flex items-center justify-center">
-                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    Analyzing & Summarizing...
-                  </span>
-                ) : 'Summarize'}
+                <div className="flex items-center justify-center">
+                  <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                  </svg>
+                  Text Summary
+                </div>
               </button>
-            </form>
+              <button
+                onClick={() => handleTabChange('video')}
+                className={`flex-1 py-4 px-6 text-center focus:outline-none transition-colors ${
+                  activeTab === 'video'
+                    ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white'
+                    : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
+                }`}
+              >
+                <div className="flex items-center justify-center">
+                  <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                  </svg>
+                  Video Summary
+                </div>
+              </button>
+            </div>
+
+            <div className="p-8">
+              <form onSubmit={handleSubmit} className="space-y-6">
+                <div className="space-y-4">
+                  <div className="flex items-center space-x-4 mb-2">
+                    <button
+                      type="button"
+                      onClick={() => setInputType('url')}
+                      className={`flex-1 py-2 px-4 rounded-lg transition-colors ${
+                        inputType === 'url'
+                          ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300'
+                          : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'
+                      }`}
+                    >
+                      URL Input
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setInputType('text')}
+                      className={`flex-1 py-2 px-4 rounded-lg transition-colors ${
+                        inputType === 'text'
+                          ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300'
+                          : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'
+                      }`}
+                    >
+                      Custom Text
+                    </button>
+                  </div>
+
+                  {inputType === 'url' ? (
+                    <div>
+                      <label 
+                        htmlFor="url" 
+                        className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2"
+                      >
+                        {activeTab === 'article' ? 'Article URL' : 'News Article URL'}
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="url"
+                          id="url"
+                          value={url}
+                          onChange={(e) => setUrl(e.target.value)}
+                          placeholder={activeTab === 'article' ? "Paste article URL here" : "Paste news article URL for video summary"}
+                          className="w-full p-4 border-2 border-gray-200 dark:border-gray-600 rounded-xl 
+                                   focus:ring-2 focus:ring-blue-500 focus:border-transparent
+                                   dark:bg-gray-700 dark:text-white transition-all duration-200
+                                   placeholder-gray-400 text-lg pr-12"
+                          required={inputType === 'url'}
+                        />
+                        {url && (
+                          <button
+                            type="button"
+                            onClick={clearInput}
+                            aria-label="Clear URL input"
+                            className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                          >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    <div>
+                      <label 
+                        htmlFor="customText" 
+                        className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2"
+                      >
+                        Custom Text
+                      </label>
+                      <div className="relative">
+                        <textarea
+                          id="customText"
+                          value={customText}
+                          onChange={(e) => setCustomText(e.target.value)}
+                          placeholder="Enter your text here for summarization"
+                          className="w-full p-4 border-2 border-gray-200 dark:border-gray-600 rounded-xl 
+                                   focus:ring-2 focus:ring-blue-500 focus:border-transparent
+                                   dark:bg-gray-700 dark:text-white transition-all duration-200
+                                   placeholder-gray-400 text-lg pr-12"
+                          rows={4}
+                          required={inputType === 'text'}
+                        />
+                        {customText && (
+                          <button
+                            type="button"
+                            onClick={clearInput}
+                            aria-label="Clear custom text input"
+                            className="absolute right-4 top-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                          >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-4 px-6 
+                           rounded-xl text-lg font-medium hover:opacity-90 transition-all duration-200
+                           disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed
+                           transform hover:-translate-y-0.5 active:translate-y-0
+                           shadow-lg hover:shadow-xl"
+                >
+                  {loading ? (
+                    <span className="flex items-center justify-center">
+                      <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      {activeTab === 'article' ? 'Analyzing & Summarizing...' : 'Generating Video...'}
+                    </span>
+                  ) : (activeTab === 'article' ? 'Summarize' : 'Generate Video')}
+                </button>
+              </form>
+            </div>
           </div>
 
           {error && (
@@ -139,12 +298,13 @@ export default function Home() {
             </div>
           )}
 
-          {summaryData && !error && (
+          {/* Article Summary View */}
+          {activeTab === 'article' && summaryData && !error && (
             <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8 backdrop-blur-lg bg-opacity-90">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-2xl font-semibold text-gray-800 dark:text-white flex items-center">
-                  <svg className="w-6 h-6 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                  <svg className="w-6 h-6 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                   </svg>
                   Summary
                 </h2>
@@ -206,13 +366,60 @@ export default function Home() {
             </div>
           )}
 
-          {!summaryData && !loading && !error && (
+          {/* Video Summary View */}
+          {activeTab === 'video' && videoGenerated && !error && (
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8 backdrop-blur-lg bg-opacity-90">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-semibold text-gray-800 dark:text-white flex items-center">
+                  <svg className="w-6 h-6 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                  </svg>
+                  Video Summary
+                </h2>
+              </div>
+
+              <div className="aspect-w-16 aspect-h-9 rounded-xl overflow-hidden">
+                <video 
+                  className="w-full h-full object-cover"
+                  controls
+                  src={videoUrl}
+                  poster="/video-thumbnail.jpg"
+                >
+                  Your browser does not support the video tag.
+                </video>
+              </div>
+
+              <div className="mt-4 flex justify-end">
+                <a
+                  href={videoUrl}
+                  download="news-summary.mp4"
+                  className="inline-flex items-center px-4 py-2 text-sm font-medium text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
+                >
+                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                  </svg>
+                  Download Video
+                </a>
+              </div>
+            </div>
+          )}
+
+          {/* Empty State */}
+          {!summaryData && !videoGenerated && !loading && !error && (
             <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8 backdrop-blur-lg bg-opacity-90">
               <div className="flex flex-col items-center justify-center h-[200px] text-gray-400 dark:text-gray-500">
-                <svg className="w-12 h-12 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122"></path>
+                <svg className="w-12 h-12 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  {activeTab === 'article' ? (
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                  ) : (
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                  )}
                 </svg>
-                <p className="text-lg">Enter a URL to get an authenticated summary</p>
+                <p className="text-lg">
+                  {activeTab === 'article' 
+                    ? 'Enter a URL to get an authenticated summary' 
+                    : 'Enter a URL to generate a video summary'}
+                </p>
               </div>
             </div>
           )}
