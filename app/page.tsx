@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import NewsFeed from './components/NewsFeed';
 
 interface SummaryData {
   summary: string;
@@ -17,10 +18,10 @@ interface SummaryData {
   };
 }
 
-type TabType = 'article' | 'video';
+type TabType = 'article' | 'video' | 'browse';
 
 export default function Home() {
-  const [activeTab, setActiveTab] = useState<TabType>('article');
+  const [activeTab, setActiveTab] = useState<TabType>('browse');
   const [url, setUrl] = useState('');
   const [customText, setCustomText] = useState('');
   const [inputType, setInputType] = useState<'url' | 'text'>('url');
@@ -121,6 +122,12 @@ export default function Home() {
     </span>
   );
 
+  const handleNewsArticleSelect = (articleUrl: string) => {
+    setActiveTab('article');
+    setUrl(articleUrl);
+    setInputType('url');
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white dark:from-gray-900 dark:to-gray-800">
       <div className="max-w-4xl mx-auto px-4 py-16">
@@ -134,9 +141,23 @@ export default function Home() {
         </header>
 
         <main className="space-y-8">
-          {/* Tabs */}
           <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl overflow-hidden">
             <div className="flex border-b border-gray-200 dark:border-gray-700">
+              <button
+                onClick={() => handleTabChange('browse')}
+                className={`flex-1 py-4 px-6 text-center focus:outline-none transition-colors ${
+                  activeTab === 'browse'
+                    ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white'
+                    : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
+                }`}
+              >
+                <div className="flex items-center justify-center">
+                  <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9.5a2.5 2.5 0 00-2.5-2.5H15"/>
+                  </svg>
+                  Browse News
+                </div>
+              </button>
               <button
                 onClick={() => handleTabChange('article')}
                 className={`flex-1 py-4 px-6 text-center focus:outline-none transition-colors ${
@@ -170,125 +191,129 @@ export default function Home() {
             </div>
 
             <div className="p-8">
-              <form onSubmit={handleSubmit} className="space-y-6">
-                <div className="space-y-4">
-                  <div className="flex items-center space-x-4 mb-2">
-                    <button
-                      type="button"
-                      onClick={() => setInputType('url')}
-                      className={`flex-1 py-2 px-4 rounded-lg transition-colors ${
-                        inputType === 'url'
-                          ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300'
-                          : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'
-                      }`}
-                    >
-                      URL Input
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setInputType('text')}
-                      className={`flex-1 py-2 px-4 rounded-lg transition-colors ${
-                        inputType === 'text'
-                          ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300'
-                          : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'
-                      }`}
-                    >
-                      Custom Text
-                    </button>
-                  </div>
-
-                  {inputType === 'url' ? (
-                    <div>
-                      <label 
-                        htmlFor="url" 
-                        className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2"
+              {activeTab === 'browse' ? (
+                <NewsFeed onSelectArticle={handleNewsArticleSelect} />
+              ) : (
+                <form onSubmit={handleSubmit} className="space-y-6">
+                  <div className="space-y-4">
+                    <div className="flex items-center space-x-4 mb-2">
+                      <button
+                        type="button"
+                        onClick={() => setInputType('url')}
+                        className={`flex-1 py-2 px-4 rounded-lg transition-colors ${
+                          inputType === 'url'
+                            ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300'
+                            : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'
+                        }`}
                       >
-                        {activeTab === 'article' ? 'Article URL' : 'News Article URL'}
-                      </label>
-                      <div className="relative">
-                        <input
-                          type="url"
-                          id="url"
-                          value={url}
-                          onChange={(e) => setUrl(e.target.value)}
-                          placeholder={activeTab === 'article' ? "Paste article URL here" : "Paste news article URL for video summary"}
-                          className="w-full p-4 border-2 border-gray-200 dark:border-gray-600 rounded-xl 
-                                   focus:ring-2 focus:ring-blue-500 focus:border-transparent
-                                   dark:bg-gray-700 dark:text-white transition-all duration-200
-                                   placeholder-gray-400 text-lg pr-12"
-                          required={inputType === 'url'}
-                        />
-                        {url && (
-                          <button
-                            type="button"
-                            onClick={clearInput}
-                            aria-label="Clear URL input"
-                            className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
-                          >
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  ) : (
-                    <div>
-                      <label 
-                        htmlFor="customText" 
-                        className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2"
+                        URL Input
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setInputType('text')}
+                        className={`flex-1 py-2 px-4 rounded-lg transition-colors ${
+                          inputType === 'text'
+                            ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300'
+                            : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'
+                        }`}
                       >
                         Custom Text
-                      </label>
-                      <div className="relative">
-                        <textarea
-                          id="customText"
-                          value={customText}
-                          onChange={(e) => setCustomText(e.target.value)}
-                          placeholder="Enter your text here for summarization"
-                          className="w-full p-4 border-2 border-gray-200 dark:border-gray-600 rounded-xl 
-                                   focus:ring-2 focus:ring-blue-500 focus:border-transparent
-                                   dark:bg-gray-700 dark:text-white transition-all duration-200
-                                   placeholder-gray-400 text-lg pr-12"
-                          rows={4}
-                          required={inputType === 'text'}
-                        />
-                        {customText && (
-                          <button
-                            type="button"
-                            onClick={clearInput}
-                            aria-label="Clear custom text input"
-                            className="absolute right-4 top-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
-                          >
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                          </button>
-                        )}
-                      </div>
+                      </button>
                     </div>
-                  )}
-                </div>
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-4 px-6 
-                           rounded-xl text-lg font-medium hover:opacity-90 transition-all duration-200
-                           disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed
-                           transform hover:-translate-y-0.5 active:translate-y-0
-                           shadow-lg hover:shadow-xl"
-                >
-                  {loading ? (
-                    <span className="flex items-center justify-center">
-                      <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                      {activeTab === 'article' ? 'Analyzing & Summarizing...' : 'Generating Video...'}
-                    </span>
-                  ) : (activeTab === 'article' ? 'Summarize' : 'Generate Video')}
-                </button>
-              </form>
+
+                    {inputType === 'url' ? (
+                      <div>
+                        <label 
+                          htmlFor="url" 
+                          className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2"
+                        >
+                          {activeTab === 'article' ? 'Article URL' : 'News Article URL'}
+                        </label>
+                        <div className="relative">
+                          <input
+                            type="url"
+                            id="url"
+                            value={url}
+                            onChange={(e) => setUrl(e.target.value)}
+                            placeholder={activeTab === 'article' ? "Paste article URL here" : "Paste news article URL for video summary"}
+                            className="w-full p-4 border-2 border-gray-200 dark:border-gray-600 rounded-xl 
+                                     focus:ring-2 focus:ring-blue-500 focus:border-transparent
+                                     dark:bg-gray-700 dark:text-white transition-all duration-200
+                                     placeholder-gray-400 text-lg pr-12"
+                            required={inputType === 'url'}
+                          />
+                          {url && (
+                            <button
+                              type="button"
+                              onClick={clearInput}
+                              aria-label="Clear URL input"
+                              className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                            >
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    ) : (
+                      <div>
+                        <label 
+                          htmlFor="customText" 
+                          className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2"
+                        >
+                          Custom Text
+                        </label>
+                        <div className="relative">
+                          <textarea
+                            id="customText"
+                            value={customText}
+                            onChange={(e) => setCustomText(e.target.value)}
+                            placeholder="Enter your text here for summarization"
+                            className="w-full p-4 border-2 border-gray-200 dark:border-gray-600 rounded-xl 
+                                     focus:ring-2 focus:ring-blue-500 focus:border-transparent
+                                     dark:bg-gray-700 dark:text-white transition-all duration-200
+                                     placeholder-gray-400 text-lg pr-12"
+                            rows={4}
+                            required={inputType === 'text'}
+                          />
+                          {customText && (
+                            <button
+                              type="button"
+                              onClick={clearInput}
+                              aria-label="Clear custom text input"
+                              className="absolute right-4 top-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                            >
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-4 px-6 
+                             rounded-xl text-lg font-medium hover:opacity-90 transition-all duration-200
+                             disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed
+                             transform hover:-translate-y-0.5 active:translate-y-0
+                             shadow-lg hover:shadow-xl"
+                  >
+                    {loading ? (
+                      <span className="flex items-center justify-center">
+                        <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        {activeTab === 'article' ? 'Analyzing & Summarizing...' : 'Generating Video...'}
+                      </span>
+                    ) : (activeTab === 'article' ? 'Summarize' : 'Generate Video')}
+                  </button>
+                </form>
+              )}
             </div>
           </div>
 
@@ -404,8 +429,8 @@ export default function Home() {
             </div>
           )}
 
-          {/* Empty State */}
-          {!summaryData && !videoGenerated && !loading && !error && (
+          {/* Empty State - Only show for Article and Video tabs, not for Browse tab */}
+          {activeTab !== 'browse' && !summaryData && !videoGenerated && !loading && !error && (
             <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8 backdrop-blur-lg bg-opacity-90">
               <div className="flex flex-col items-center justify-center h-[200px] text-gray-400 dark:text-gray-500">
                 <svg className="w-12 h-12 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -418,7 +443,7 @@ export default function Home() {
                 <p className="text-lg">
                   {activeTab === 'article' 
                     ? 'Enter a URL to get an authenticated summary' 
-                    : 'Enter a URL to generate a video summary'}
+                    : 'Enter a URL to get a video summary'}
                 </p>
               </div>
             </div>
