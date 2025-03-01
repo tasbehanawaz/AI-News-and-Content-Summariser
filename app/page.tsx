@@ -23,8 +23,6 @@ type TabType = 'article' | 'video' | 'browse';
 export default function Home() {
   const [activeTab, setActiveTab] = useState<TabType>('browse');
   const [url, setUrl] = useState('');
-  const [customText, setCustomText] = useState('');
-  const [inputType, setInputType] = useState<'url' | 'text'>('url');
   const [summaryData, setSummaryData] = useState<SummaryData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -44,9 +42,8 @@ export default function Home() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ 
-          url: inputType === 'url' ? url : null,
-          text: inputType === 'text' ? customText : null,
-          type: inputType
+          url: url, // Only use the URL input
+          type: 'url' // Add this line to include the type
         }),
       });
 
@@ -89,15 +86,10 @@ export default function Home() {
     setVideoGenerated(false);
     setVideoUrl('');
     setUrl('');
-    setCustomText('');
   };
 
   const clearInput = () => {
-    if (inputType === 'url') {
-      setUrl('');
-    } else {
-      setCustomText('');
-    }
+    setUrl('');
   };
 
   const VerificationBadge = ({ isVerified }: { isVerified: boolean }) => (
@@ -123,10 +115,13 @@ export default function Home() {
   );
 
   const handleNewsArticleSelect = (articleUrl: string) => {
+    console.log(`Article selected: ${articleUrl}`); // Debugging log
     setActiveTab('article');
     setUrl(articleUrl);
-    setInputType('url');
   };
+
+  // Ensure this function is passed to the NewsFeed component
+  <NewsFeed onSelectArticle={handleNewsArticleSelect} />
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white dark:from-gray-900 dark:to-gray-800">
@@ -196,102 +191,40 @@ export default function Home() {
               ) : (
                 <form onSubmit={handleSubmit} className="space-y-6">
                   <div className="space-y-4">
-                    <div className="flex items-center space-x-4 mb-2">
-                      <button
-                        type="button"
-                        onClick={() => setInputType('url')}
-                        className={`flex-1 py-2 px-4 rounded-lg transition-colors ${
-                          inputType === 'url'
-                            ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300'
-                            : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'
-                        }`}
+                    <div>
+                      <label 
+                        htmlFor="url" 
+                        className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2"
                       >
-                        URL Input
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setInputType('text')}
-                        className={`flex-1 py-2 px-4 rounded-lg transition-colors ${
-                          inputType === 'text'
-                            ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300'
-                            : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'
-                        }`}
-                      >
-                        Custom Text
-                      </button>
+                        {activeTab === 'article' ? 'Article URL' : 'News Article URL'}
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="url"
+                          id="url"
+                          value={url}
+                          onChange={(e) => setUrl(e.target.value)}
+                          placeholder={activeTab === 'article' ? "Paste article URL here" : "Paste news article URL for video summary"}
+                          className="w-full p-4 border-2 border-gray-200 dark:border-gray-600 rounded-xl 
+                                   focus:ring-2 focus:ring-blue-500 focus:border-transparent
+                                   dark:bg-gray-700 dark:text-white transition-all duration-200
+                                   placeholder-gray-400 text-lg pr-12"
+                          required
+                        />
+                        {url && (
+                          <button
+                            type="button"
+                            onClick={clearInput}
+                            aria-label="Clear URL input"
+                            className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                          >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </button>
+                        )}
+                      </div>
                     </div>
-
-                    {inputType === 'url' ? (
-                      <div>
-                        <label 
-                          htmlFor="url" 
-                          className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2"
-                        >
-                          {activeTab === 'article' ? 'Article URL' : 'News Article URL'}
-                        </label>
-                        <div className="relative">
-                          <input
-                            type="url"
-                            id="url"
-                            value={url}
-                            onChange={(e) => setUrl(e.target.value)}
-                            placeholder={activeTab === 'article' ? "Paste article URL here" : "Paste news article URL for video summary"}
-                            className="w-full p-4 border-2 border-gray-200 dark:border-gray-600 rounded-xl 
-                                     focus:ring-2 focus:ring-blue-500 focus:border-transparent
-                                     dark:bg-gray-700 dark:text-white transition-all duration-200
-                                     placeholder-gray-400 text-lg pr-12"
-                            required={inputType === 'url'}
-                          />
-                          {url && (
-                            <button
-                              type="button"
-                              onClick={clearInput}
-                              aria-label="Clear URL input"
-                              className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
-                            >
-                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                              </svg>
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    ) : (
-                      <div>
-                        <label 
-                          htmlFor="customText" 
-                          className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2"
-                        >
-                          Custom Text
-                        </label>
-                        <div className="relative">
-                          <textarea
-                            id="customText"
-                            value={customText}
-                            onChange={(e) => setCustomText(e.target.value)}
-                            placeholder="Enter your text here for summarization"
-                            className="w-full p-4 border-2 border-gray-200 dark:border-gray-600 rounded-xl 
-                                     focus:ring-2 focus:ring-blue-500 focus:border-transparent
-                                     dark:bg-gray-700 dark:text-white transition-all duration-200
-                                     placeholder-gray-400 text-lg pr-12"
-                            rows={4}
-                            required={inputType === 'text'}
-                          />
-                          {customText && (
-                            <button
-                              type="button"
-                              onClick={clearInput}
-                              aria-label="Clear custom text input"
-                              className="absolute right-4 top-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
-                            >
-                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                              </svg>
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    )}
                   </div>
                   <button
                     type="submit"
