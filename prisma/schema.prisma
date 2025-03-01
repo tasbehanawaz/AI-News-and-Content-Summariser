@@ -50,4 +50,5 @@ model VideoSummary {
   videoUrl    String
   inputType   String   // 'url' or 'text'
   inputContent String  // The original URL or text input
+  usedFallback Boolean @default(false)
 }

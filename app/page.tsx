@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import NewsFeed from './components/NewsFeed';
+import VideoGenerator from './components/VideoGenerator';
 
 interface SummaryData {
   summary: string;
@@ -28,6 +29,8 @@ export default function Home() {
   const [error, setError] = useState('');
   const [videoGenerated, setVideoGenerated] = useState(false);
   const [videoUrl, setVideoUrl] = useState('');
+  const [showUrlModal, setShowUrlModal] = useState(false);
+  const [selectedUrl, setSelectedUrl] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,41 +38,27 @@ export default function Home() {
     setError('');
 
     try {
-      const endpoint = activeTab === 'article' ? '/api/summarize' : '/api/generate-video';
-      const response = await fetch(endpoint, {
+      const response = await fetch('/api/summarize', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ 
-          url: url, // Only use the URL input
-          type: 'url' // Add this line to include the type
+          url: url,
+          type: 'url'
         }),
       });
 
       const data = await response.json();
       
-      // Log the response for debugging
-      console.log('API Response:', { status: response.status, data });
-      
       if (!response.ok) {
         throw new Error(data.error || 'Failed to process request');
       }
 
-      if (activeTab === 'article') {
-        // Check if data has the expected structure
-        if (data && data.summary && data.sourceMetadata && data.aiMetrics) {
-          setSummaryData(data);
-        } else {
-          throw new Error('Invalid response format from server');
-        }
+      if (data && data.summary && data.sourceMetadata && data.aiMetrics) {
+        setSummaryData(data);
       } else {
-        if (data && data.videoUrl) {
-          setVideoUrl(data.videoUrl);
-          setVideoGenerated(true);
-        } else {
-          throw new Error('Invalid video response format from server');
-        }
+        throw new Error('Invalid response format from server');
       }
     } catch (error) {
       console.error('Request failed:', error);
@@ -79,13 +68,30 @@ export default function Home() {
     }
   };
 
+  const handleNewsArticleSelect = (articleUrl: string) => {
+    console.log(`Article selected: ${articleUrl}`);
+    setSelectedUrl(articleUrl);
+    setShowUrlModal(true);
+  };
+
+  const handleUrlModalChoice = (choice: 'text' | 'video') => {
+    if (choice === 'text') {
+      setActiveTab('article');
+      setUrl(selectedUrl);
+    } else {
+      setActiveTab('video');
+      setUrl(selectedUrl);
+    }
+    setShowUrlModal(false);
+  };
+
   const handleTabChange = (tab: TabType) => {
     setActiveTab(tab);
     setError('');
     setSummaryData(null);
     setVideoGenerated(false);
     setVideoUrl('');
-    setUrl('');
+    // Don't clear URL when switching tabs
   };
 
   const clearInput = () => {
@@ -113,15 +119,6 @@ export default function Home() {
       )}
     </span>
   );
-
-  const handleNewsArticleSelect = (articleUrl: string) => {
-    console.log(`Article selected: ${articleUrl}`); // Debugging log
-    setActiveTab('article');
-    setUrl(articleUrl);
-  };
-
-  // Ensure this function is passed to the NewsFeed component
-  <NewsFeed onSelectArticle={handleNewsArticleSelect} />
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white dark:from-gray-900 dark:to-gray-800">
@@ -186,73 +183,125 @@ export default function Home() {
             </div>
 
             <div className="p-8">
-              {activeTab === 'browse' ? (
-                <NewsFeed onSelectArticle={handleNewsArticleSelect} />
-              ) : (
-                <form onSubmit={handleSubmit} className="space-y-6">
-                  <div className="space-y-4">
-                    <div>
-                      <label 
-                        htmlFor="url" 
-                        className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2"
-                      >
-                        {activeTab === 'article' ? 'Article URL' : 'News Article URL'}
-                      </label>
-                      <div className="relative">
-                        <input
-                          type="url"
-                          id="url"
-                          value={url}
-                          onChange={(e) => setUrl(e.target.value)}
-                          placeholder={activeTab === 'article' ? "Paste article URL here" : "Paste news article URL for video summary"}
-                          className="w-full p-4 border-2 border-gray-200 dark:border-gray-600 rounded-xl 
-                                   focus:ring-2 focus:ring-blue-500 focus:border-transparent
-                                   dark:bg-gray-700 dark:text-white transition-all duration-200
-                                   placeholder-gray-400 text-lg pr-12"
-                          required
-                        />
-                        {url && (
-                          <button
-                            type="button"
-                            onClick={clearInput}
-                            aria-label="Clear URL input"
-                            className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
-                          >
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                          </button>
-                        )}
+              <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8 backdrop-blur-lg bg-opacity-90">
+                {activeTab === 'browse' ? (
+                  <NewsFeed onSelectArticle={handleNewsArticleSelect} />
+                ) : activeTab === 'video' ? (
+                  <VideoGenerator url={url} />
+                ) : (
+                  <form onSubmit={handleSubmit} className="space-y-6">
+                    <div className="space-y-4">
+                      <div>
+                        <label 
+                          htmlFor="url" 
+                          className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2"
+                        >
+                          {activeTab === 'article' ? 'Article URL' : 'News Article URL'}
+                        </label>
+                        <div className="relative">
+                          <input
+                            type="url"
+                            id="url"
+                            value={url}
+                            onChange={(e) => setUrl(e.target.value)}
+                            placeholder={activeTab === 'article' ? "Paste article URL here" : "Paste news article URL for video summary"}
+                            className="w-full p-4 border-2 border-gray-200 dark:border-gray-600 rounded-xl 
+                                     focus:ring-2 focus:ring-blue-500 focus:border-transparent
+                                     dark:bg-gray-700 dark:text-white transition-all duration-200
+                                     placeholder-gray-400 text-lg pr-12"
+                            required
+                          />
+                          {url && (
+                            <button
+                              type="button"
+                              onClick={clearInput}
+                              aria-label="Clear URL input"
+                              className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                            >
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                            </button>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-4 px-6 
-                             rounded-xl text-lg font-medium hover:opacity-90 transition-all duration-200
-                             disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed
-                             transform hover:-translate-y-0.5 active:translate-y-0
-                             shadow-lg hover:shadow-xl"
-                  >
-                    {loading ? (
-                      <span className="flex items-center justify-center">
-                        <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                        {activeTab === 'article' ? 'Analyzing & Summarizing...' : 'Generating Video...'}
-                      </span>
-                    ) : (activeTab === 'article' ? 'Summarize' : 'Generate Video')}
-                  </button>
-                </form>
-              )}
+                    <button
+                      type="submit"
+                      disabled={loading}
+                      className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-4 px-6 
+                               rounded-xl text-lg font-medium hover:opacity-90 transition-all duration-200
+                               disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed
+                               transform hover:-translate-y-0.5 active:translate-y-0
+                               shadow-lg hover:shadow-xl"
+                    >
+                      {loading ? (
+                        <span className="flex items-center justify-center">
+                          <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                          {activeTab === 'article' ? 'Analyzing & Summarizing...' : 'Generating Video...'}
+                        </span>
+                      ) : (activeTab === 'article' ? 'Summarize' : 'Generate Video')}
+                    </button>
+                  </form>
+                )}
+              </div>
             </div>
           </div>
 
+          {/* URL Selection Modal */}
+          {showUrlModal && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+              <div className="bg-white dark:bg-gray-800 rounded-xl p-6 max-w-md w-full mx-4">
+                <h3 className="text-lg font-semibold mb-4">Choose Summary Type</h3>
+                <p className="text-gray-600 dark:text-gray-300 mb-6">
+                  How would you like to summarize this article?
+                </p>
+                <div className="space-y-3">
+                  <button
+                    onClick={() => handleUrlModalChoice('text')}
+                    className="w-full py-3 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    Text Summary
+                  </button>
+                  <button
+                    onClick={() => handleUrlModalChoice('video')}
+                    className="w-full py-3 px-4 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+                  >
+                    Video Summary
+                  </button>
+                  <button
+                    onClick={() => setShowUrlModal(false)}
+                    className="w-full py-3 px-4 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
           {error && (
-            <div className="bg-red-50 dark:bg-red-900/50 border-l-4 border-red-500 p-4 rounded-lg">
-              <p className="text-red-700 dark:text-red-200">{error}</p>
+            <div className="bg-red-50 dark:bg-red-900/50 border-l-4 border-red-500 p-6 rounded-lg space-y-3">
+              <div className="flex items-center">
+                <svg className="w-5 h-5 text-red-700 dark:text-red-200 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <p className="text-red-700 dark:text-red-200 font-medium">{error}</p>
+              </div>
+              {error.includes('forbidden') && (
+                <div className="text-sm text-red-600 dark:text-red-300 pl-7">
+                  <p className="font-medium mb-2">Suggestions:</p>
+                  <ul className="list-disc pl-5 space-y-1">
+                    <li>Try using a different news source</li>
+                    <li>Check if the article requires a subscription</li>
+                    <li>Use an article from our recommended sources (Reuters, AP News)</li>
+                    <li>Make sure the URL is publicly accessible</li>
+                  </ul>
+                </div>
+              )}
             </div>
           )}
 
@@ -362,22 +411,14 @@ export default function Home() {
             </div>
           )}
 
-          {/* Empty State - Only show for Article and Video tabs, not for Browse tab */}
-          {activeTab !== 'browse' && !summaryData && !videoGenerated && !loading && !error && (
+          {/* Empty State - Only show for Article tab */}
+          {activeTab === 'article' && !summaryData && !loading && !error && (
             <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8 backdrop-blur-lg bg-opacity-90">
               <div className="flex flex-col items-center justify-center h-[200px] text-gray-400 dark:text-gray-500">
                 <svg className="w-12 h-12 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  {activeTab === 'article' ? (
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                  ) : (
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
-                  )}
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                 </svg>
-                <p className="text-lg">
-                  {activeTab === 'article' 
-                    ? 'Enter a URL to get an authenticated summary' 
-                    : 'Enter a URL to get a video summary'}
-                </p>
+                <p className="text-lg">Enter a URL to get an authenticated summary</p>
               </div>
             </div>
           )}

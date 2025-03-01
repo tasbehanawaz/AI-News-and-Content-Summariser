@@ -26,6 +26,12 @@ const TRUSTED_DOMAINS = [
   'economist.com', 'ft.com', 'forbes.com', 'cnbc.com', 'cnn.com'
 ];
 
+// Add known paywalled or restricted sites
+const PAYWALLED_DOMAINS = [
+  'wsj.com', 'nytimes.com', 'economist.com', 'ft.com',
+  'bloomberg.com', 'washingtonpost.com'
+];
+
 export type Article = {
   title: string;
   url: string;
@@ -35,33 +41,168 @@ export type Article = {
   // Add other fields as necessary
 };
 
+function getDomain(url: string): string {
+  try {
+    const hostname = new URL(url).hostname.toLowerCase();
+    return hostname.startsWith('www.') ? hostname.slice(4) : hostname;
+  } catch {
+    return '';
+  }
+}
+
 // fetch article content function
 export async function fetchArticleContent(url: string): Promise<string> {
   try {
-    const response = await axios.get(url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
-        'Accept': 'text/html',
-      },
-    });
-
-    const html = response.data;
-    const dom = new JSDOM(html);
-    const reader = new Readability(dom.window.document);
-    const article = reader.parse();
-
-    // If Readability provides content, return it
-    if (article?.textContent) {
-      return article.textContent.trim();
+    const domain = getDomain(url);
+    
+    // Check if domain is paywalled
+    if (PAYWALLED_DOMAINS.some(d => domain.endsWith(d))) {
+      throw new Error(`This article is from ${domain} which requires a subscription. Please try an article from a non-paywalled source like Reuters or AP News.`);
     }
 
-    // Fallback to cheerio if Readability fails
-    const $ = cheerio.load(html);
-    const articleContent = $('article').text() || $('body').text(); // Example selector
+    // Try multiple fetch strategies
+    const fetchStrategies = [
+      // Strategy 1: Standard browser-like request with enhanced headers
+      {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+          'Accept-Language': 'en-US,en;q=0.9',
+          'Accept-Encoding': 'gzip, deflate, br',
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache',
+          'Sec-Ch-Ua': '"Chromium";v="122", "Not(A:Brand";v="24", "Google Chrome";v="122"',
+          'Sec-Ch-Ua-Mobile': '?0',
+          'Sec-Ch-Ua-Platform': '"Windows"',
+          'Sec-Fetch-Dest': 'document',
+          'Sec-Fetch-Mode': 'navigate',
+          'Sec-Fetch-Site': 'none',
+          'Sec-Fetch-User': '?1',
+          'Upgrade-Insecure-Requests': '1',
+          'Referer': 'https://www.google.com/',
+          'Connection': 'keep-alive',
+          'DNT': '1'
+        }
+      },
+      // Strategy 2: Mobile user agent with enhanced headers
+      {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1',
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+          'Accept-Language': 'en-US,en;q=0.9',
+          'Accept-Encoding': 'gzip, deflate, br',
+          'Connection': 'keep-alive',
+          'Referer': 'https://www.google.com/',
+          'DNT': '1'
+        }
+      }
+    ];
 
-    return articleContent.trim();
+    let lastError: Error | null = null;
+    
+    // Try each strategy with delay between retries
+    for (const [index, strategy] of fetchStrategies.entries()) {
+      try {
+        // Add delay between retries
+        if (index > 0) {
+          await new Promise(resolve => setTimeout(resolve, 2000));
+        }
+
+        const response = await axios.get(url, {
+          ...strategy,
+          timeout: 15000,
+          maxRedirects: 5,
+          validateStatus: function (status) {
+            return status < 400; // Accept any status code less than 400
+          }
+        });
+
+        if (!response.data) continue;
+
+        const html = response.data;
+        
+        // Try Readability first
+        try {
+          const dom = new JSDOM(html, { url });  // Pass URL for better parsing
+          const reader = new Readability(dom.window.document, {
+            charThreshold: 20 // Lower character threshold
+          });
+          const article = reader.parse();
+          if (article?.textContent && article.textContent.length > 50) {
+            return article.textContent;
+          }
+        } catch {
+          console.warn('Readability parsing failed, trying Cheerio');
+        }
+
+        // Try Cheerio with expanded selectors
+        const $ = cheerio.load(html);
+        const selectors = [
+          'article', 
+          '.article-content',
+          '.article-body',
+          '[itemprop="articleBody"]',
+          '.story-content',
+          '.post-content',
+          'main',
+          '.content',
+          '#content',
+          '.entry-content',
+          '.post__content',
+          '.story__content',
+          '.article__body',
+          '.article-text'
+        ];
+
+        for (const selector of selectors) {
+          const element = $(selector);
+          if (element.length) {
+            const content = element.text().trim();
+            if (content.length > 50) {
+              return content;
+            }
+          }
+        }
+
+        // Last resort: Try to get main text content while excluding navigation, headers, etc.
+        const mainContent = $('body')
+          .clone()
+          .children('header, nav, footer, script, style, iframe, .nav, .header, .footer')
+          .remove()
+          .end()
+          .text()
+          .trim();
+          
+        if (mainContent.length > 50) {
+          return mainContent;
+        }
+      } catch (err) {
+        lastError = err as Error;
+        continue;
+      }
+    }
+
+    // If we get here, all strategies failed
+    if (lastError) {
+      if (axios.isAxiosError(lastError)) {
+        if (lastError.response?.status === 403) {
+          throw new Error(`Unable to access this article. Please try:\n1. An article from Reuters or AP News\n2. A different news source\n3. Make sure the article is publicly accessible`);
+        } else if (lastError.response?.status === 404) {
+          throw new Error('This article no longer exists or has been moved.');
+        } else if (lastError.response?.status === 429) {
+          throw new Error('Too many requests to the news site. Please try again in a few minutes.');
+        }
+      }
+      throw lastError;
+    }
+    
+    throw new Error('Could not extract meaningful content from the article. Please try a different article.');
+    
   } catch (error) {
     console.error('Error fetching article:', error);
+    if (error instanceof Error) {
+      throw error;
+    }
     throw new Error('Failed to fetch or parse article content');
   }
 }
