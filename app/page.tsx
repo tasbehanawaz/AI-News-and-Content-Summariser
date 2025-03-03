@@ -121,109 +121,110 @@ export default function Home() {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white dark:from-gray-900 dark:to-gray-800">
-      <div className="max-w-4xl mx-auto px-4 py-16">
-        <header className="mb-12 text-center">
-          <h1 className="text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600 mb-4">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        <header className="mb-8 text-center">
+          <h1 className="text-4xl md:text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600 mb-3">
             AI News Summarizer
           </h1>
-          <p className="text-xl text-gray-600 dark:text-gray-300">
+          <p className="text-lg text-gray-600 dark:text-gray-300">
             Get authenticated summaries in text or video format
           </p>
         </header>
 
-        <main className="space-y-8">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl overflow-hidden">
-            <div className="flex border-b border-gray-200 dark:border-gray-700">
+        <main>
+          {/* Navigation Tabs - Now with glass effect */}
+          <div className="backdrop-blur-md bg-white/30 dark:bg-gray-800/30 rounded-t-2xl border-b border-gray-200/50 dark:border-gray-700/50 sticky top-0 z-10">
+            <div className="flex">
               <button
                 onClick={() => handleTabChange('browse')}
-                className={`flex-1 py-4 px-6 text-center focus:outline-none transition-colors ${
+                className={`flex-1 py-4 px-6 text-center focus:outline-none transition-all duration-200 ${
                   activeTab === 'browse'
-                    ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white'
-                    : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
+                    ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-t-2xl'
+                    : 'text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200'
                 }`}
               >
-                <div className="flex items-center justify-center">
-                  <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="flex items-center justify-center space-x-2">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9.5a2.5 2.5 0 00-2.5-2.5H15"/>
                   </svg>
-                  Browse News
+                  <span>Browse News</span>
                 </div>
               </button>
               <button
                 onClick={() => handleTabChange('article')}
-                className={`flex-1 py-4 px-6 text-center focus:outline-none transition-colors ${
+                className={`flex-1 py-4 px-6 text-center focus:outline-none transition-all duration-200 ${
                   activeTab === 'article'
-                    ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white'
-                    : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
+                    ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-t-2xl'
+                    : 'text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200'
                 }`}
               >
-                <div className="flex items-center justify-center">
-                  <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="flex items-center justify-center space-x-2">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                   </svg>
-                  Text Summary
+                  <span>Text Summary</span>
                 </div>
               </button>
               <button
                 onClick={() => handleTabChange('video')}
-                className={`flex-1 py-4 px-6 text-center focus:outline-none transition-colors ${
+                className={`flex-1 py-4 px-6 text-center focus:outline-none transition-all duration-200 ${
                   activeTab === 'video'
-                    ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white'
-                    : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
+                    ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-t-2xl'
+                    : 'text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200'
                 }`}
               >
-                <div className="flex items-center justify-center">
-                  <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="flex items-center justify-center space-x-2">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
                   </svg>
-                  Video Summary
+                  <span>Video Summary</span>
                 </div>
               </button>
             </div>
+          </div>
 
-            <div className="p-8">
-              <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8 backdrop-blur-lg bg-opacity-90">
-                {activeTab === 'browse' ? (
-                  <NewsFeed onSelectArticle={handleNewsArticleSelect} />
-                ) : activeTab === 'video' ? (
-                  <VideoGenerator url={url} />
-                ) : (
-                  <form onSubmit={handleSubmit} className="space-y-6">
-                    <div className="space-y-4">
-                      <div>
-                        <label 
-                          htmlFor="url" 
-                          className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2"
-                        >
-                          {activeTab === 'article' ? 'Article URL' : 'News Article URL'}
-                        </label>
-                        <div className="relative">
-                          <input
-                            type="url"
-                            id="url"
-                            value={url}
-                            onChange={(e) => setUrl(e.target.value)}
-                            placeholder={activeTab === 'article' ? "Paste article URL here" : "Paste news article URL for video summary"}
-                            className="w-full p-4 border-2 border-gray-200 dark:border-gray-600 rounded-xl 
-                                     focus:ring-2 focus:ring-blue-500 focus:border-transparent
-                                     dark:bg-gray-700 dark:text-white transition-all duration-200
-                                     placeholder-gray-400 text-lg pr-12"
-                            required
-                          />
-                          {url && (
-                            <button
-                              type="button"
-                              onClick={clearInput}
-                              aria-label="Clear URL input"
-                              className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
-                            >
-                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                              </svg>
-                            </button>
-                          )}
-                        </div>
+          {/* Content Area - Now with continuous design */}
+          <div className="backdrop-blur-md bg-white/40 dark:bg-gray-800/40 rounded-b-2xl shadow-xl">
+            <div className="p-6">
+              {activeTab === 'browse' ? (
+                <NewsFeed onSelectArticle={handleNewsArticleSelect} />
+              ) : activeTab === 'video' ? (
+                <VideoGenerator url={url} />
+              ) : (
+                <div className="space-y-6">
+                  <form onSubmit={handleSubmit} className="space-y-4">
+                    <div>
+                      <label 
+                        htmlFor="url" 
+                        className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2"
+                      >
+                        {activeTab === 'article' ? 'Article URL' : 'News Article URL'}
+                      </label>
+                      <div className="relative group">
+                        <input
+                          type="url"
+                          id="url"
+                          value={url}
+                          onChange={(e) => setUrl(e.target.value)}
+                          placeholder={activeTab === 'article' ? "Paste article URL here" : "Paste news article URL for video summary"}
+                          className="w-full p-4 bg-white/50 dark:bg-gray-700/50 border border-gray-200/50 dark:border-gray-600/50 rounded-xl 
+                                   focus:ring-2 focus:ring-blue-500 focus:border-transparent
+                                   transition-all duration-200 group-hover:bg-white/70 dark:group-hover:bg-gray-700/70
+                                   placeholder-gray-400 text-lg"
+                          required
+                        />
+                        {url && (
+                          <button
+                            type="button"
+                            onClick={clearInput}
+                            className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                          >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </button>
+                        )}
                       </div>
                     </div>
                     <button
@@ -232,8 +233,7 @@ export default function Home() {
                       className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-4 px-6 
                                rounded-xl text-lg font-medium hover:opacity-90 transition-all duration-200
                                disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed
-                               transform hover:-translate-y-0.5 active:translate-y-0
-                               shadow-lg hover:shadow-xl"
+                               transform hover:-translate-y-0.5 active:translate-y-0"
                     >
                       {loading ? (
                         <span className="flex items-center justify-center">
@@ -246,8 +246,8 @@ export default function Home() {
                       ) : (activeTab === 'article' ? 'Summarize' : 'Generate Video')}
                     </button>
                   </form>
-                )}
-              </div>
+                </div>
+              )}
             </div>
           </div>
 
@@ -413,7 +413,7 @@ export default function Home() {
 
           {/* Empty State - Only show for Article tab */}
           {activeTab === 'article' && !summaryData && !loading && !error && (
-            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8 backdrop-blur-lg bg-opacity-90">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8 backdrop-blur-lg bg-opacity-90 mt-8">
               <div className="flex flex-col items-center justify-center h-[200px] text-gray-400 dark:text-gray-500">
                 <svg className="w-12 h-12 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>

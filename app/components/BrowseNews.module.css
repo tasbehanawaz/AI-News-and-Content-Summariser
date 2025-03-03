@@ -1,0 +1,208 @@
+.container {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f6f9fe 0%, #f1f4ff 100%);
+  padding: 0;
+}
+
+/* Main Navigation */
+.mainNav {
+  display: flex;
+  background: white;
+  padding: 0.5rem;
+  border-bottom: 1px solid rgba(0,0,0,0.05);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  backdrop-filter: blur(10px);
+  background: rgba(255,255,255,0.8);
+}
+
+.navItem {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 1rem;
+  cursor: pointer;
+  color: #666;
+  font-weight: 500;
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+.navItem.active {
+  background: linear-gradient(45deg, #4763FF, #8C6FFF);
+  color: white;
+  border-radius: 8px;
+}
+
+.navItem.active::after {
+  content: '';
+  position: absolute;
+  bottom: -0.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 20px;
+  height: 2px;
+  background: linear-gradient(45deg, #4763FF, #8C6FFF);
+}
+
+/* Search and Categories */
+.filterSection {
+  padding: 2rem;
+  background: rgba(255,255,255,0.5);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(0,0,0,0.05);
+}
+
+.searchContainer {
+  position: relative;
+  max-width: 600px;
+  margin: 0 auto 2rem;
+}
+
+.searchInput {
+  width: 100%;
+  padding: 1rem 3rem 1rem 1.5rem;
+  border: 2px solid transparent;
+  border-radius: 12px;
+  background: white;
+  font-size: 1rem;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  transition: all 0.3s ease;
+}
+
+.searchInput:focus {
+  outline: none;
+  border-color: #4763FF;
+  box-shadow: 0 4px 20px rgba(71,99,255,0.15);
+}
+
+.searchButton {
+  position: absolute;
+  right: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 50%;
+  transition: all 0.3s ease;
+}
+
+.searchButton:hover {
+  background: rgba(71,99,255,0.1);
+}
+
+.categories {
+  display: flex;
+  gap: 0.75rem;
+  overflow-x: auto;
+  padding: 0.5rem 0;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.categories::-webkit-scrollbar {
+  display: none;
+}
+
+.categoryButton {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 10px;
+  background: white;
+  color: #666;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.categoryButton.active {
+  background: linear-gradient(45deg, #4763FF, #8C6FFF);
+  color: white;
+  box-shadow: 0 4px 12px rgba(71,99,255,0.2);
+}
+
+/* News Grid */
+.newsGrid {
+  padding: 2rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 2rem;
+}
+
+.newsCard {
+  background: white;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.newsImage {
+  width: 100%;
+  height: 200px;
+  overflow: hidden;
+}
+
+.newsImage img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.newsCard:hover .newsImage img {
+  transform: scale(1.05);
+}
+
+.newsContent {
+  padding: 1.5rem;
+}
+
+.newsSource {
+  display: flex;
+  justify-content: space-between;
+  color: #666;
+  font-size: 0.9rem;
+  margin-bottom: 0.75rem;
+}
+
+.newsTitle {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 0.75rem;
+  line-height: 1.4;
+}
+
+.newsExcerpt {
+  color: #666;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+@media (max-width: 768px) {
+  .mainNav {
+    padding: 0.25rem;
+  }
+
+  .filterSection {
+    padding: 1rem;
+  }
+
+  .categories {
+    gap: 0.5rem;
+  }
+
+  .newsGrid {
+    padding: 1rem;
+    gap: 1rem;
+  }
+} 

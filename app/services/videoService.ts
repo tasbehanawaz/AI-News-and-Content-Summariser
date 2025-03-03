@@ -128,13 +128,13 @@ export class VideoService {
         throw new Error('SYNC_API_KEY environment variable is not set');
       }
 
-      console.log('Uploading files to Cloudinary...');
+      console.log('Starting lip-sync process with SyncLabs...');
       const videoUrl = await this.cloudinaryService.uploadFile(config.videoPath);
       const audioUrl = await this.cloudinaryService.uploadFile(config.audioPath);
       console.log('Files uploaded successfully');
       
       const requestData = {
-        model: 'lipsync-1.9.0-beta',
+        model: 'lipsync-2.0.0', // Using the latest model version
         input: [
           {
             type: 'video',
@@ -147,24 +147,17 @@ export class VideoService {
         ],
         options: {
           output_format: 'mp4',
-          sync_mode: 'bounce',
-          fps: 25,
-          output_resolution: [854, 480],
-          active_speaker: true
+          sync_mode: 'precise', // Better sync mode for TTS audio
+          fps: 30,
+          output_resolution: [1920, 1080], // Full HD resolution
+          active_speaker: true,
+          enhance_quality: true // Enable quality enhancement
         }
       };
 
       console.log('Making request to Sync Labs API...');
-      console.log('API Key:', process.env.SYNC_API_KEY ? 'Present' : 'Missing');
-      console.log('API Key length:', process.env.SYNC_API_KEY?.length);
-      console.log('API Key first 10 chars:', process.env.SYNC_API_KEY?.substring(0, 10));
-      console.log('Environment variables loaded from:', process.env.NODE_ENV);
-      console.log('Request data:', JSON.stringify(requestData, null, 2));
-
-      // Make initial API request to SyncLabs
-      const apiKey = process.env.SYNC_API_KEY?.trim();
-      console.log('Using API key starting with:', apiKey?.substring(0, 10));
       
+      const apiKey = process.env.SYNC_API_KEY?.trim();
       const response = await axios.post('https://api.sync.so/v2/generate', requestData, {
         headers: {
           'Content-Type': 'application/json',
@@ -173,15 +166,12 @@ export class VideoService {
         timeout: 300000 // 5 minutes timeout
       });
 
-      console.log('Sync Labs API Response:', response.status);
-      console.log('Response data:', response.data);
-
       if (!response.data?.id) {
         throw new Error('No job ID in SyncLabs response: ' + JSON.stringify(response.data));
       }
 
       const jobId = response.data.id;
-      console.log('Job ID:', jobId);
+      console.log('SyncLabs Job ID:', jobId);
 
       // Poll for completion
       let attempts = 0;
@@ -193,7 +183,6 @@ export class VideoService {
         
         const statusResponse = await axios.get(`https://api.sync.so/v2/generate/${jobId}`, {
           headers: {
-            'Content-Type': 'application/json',
             'x-api-key': apiKey
           }
         });
