@@ -29,10 +29,15 @@ const AVATAR_OPTIONS: AvatarOption[] = [
   }
 ];
 
+interface ErrorDisplay {
+  message: string;
+  retryable?: boolean;
+}
+
 export default function VideoGenerator({ url }: VideoGeneratorProps) {
   const [loading, setLoading] = useState(false);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<ErrorDisplay | null>(null);
   const [selectedAvatar, setSelectedAvatar] = useState<string>('');
   const [selectedVoice, setSelectedVoice] = useState<VoiceType>('male');
   const [newsUrl, setNewsUrl] = useState<string>(url || '');
@@ -57,12 +62,12 @@ export default function VideoGenerator({ url }: VideoGeneratorProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedAvatar) {
-      setError('Please select an avatar');
+      setError({ message: 'Please select an avatar' });
       return;
     }
 
     if (!newsUrl) {
-      setError('Please provide a news article URL');
+      setError({ message: 'Please provide a news article URL' });
       return;
     }
 
@@ -83,18 +88,27 @@ export default function VideoGenerator({ url }: VideoGeneratorProps) {
         }),
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to generate video');
+        const errorMessage = data.error || 'Failed to generate video';
+        setError({
+          message: errorMessage,
+          retryable: data.retryable || errorMessage.includes('network') || errorMessage.includes('connection')
+        });
+        return;
       }
 
-      const data = await response.json();
       setVideoUrl(data.videoUrl);
       if (data.usedFallback) {
         setIsUsingFallback(true);
       }
     } catch (error) {
-      setError(error instanceof Error ? error.message : 'Failed to generate video. Please try again.');
+      const errorMessage = error instanceof Error ? error.message : 'Failed to generate video. Please try again.';
+      setError({
+        message: errorMessage,
+        retryable: errorMessage.includes('network') || errorMessage.includes('connection')
+      });
       console.error('Error:', error);
     } finally {
       setLoading(false);
@@ -105,7 +119,7 @@ export default function VideoGenerator({ url }: VideoGeneratorProps) {
     <div className="max-w-7xl mx-auto p-6">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Left Column - Controls */}
-        <div className="space-y-6">
+        <div className="space-y-6 max-w-lg">
           <h1 className="text-2xl font-bold">Video Generator</h1>
           
           {newsUrl && (
@@ -116,7 +130,7 @@ export default function VideoGenerator({ url }: VideoGeneratorProps) {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-6 max-w-md">
             {/* Avatar Selection */}
             <div className="space-y-4">
               <label className="block text-lg font-medium text-gray-900 dark:text-gray-100">
@@ -136,7 +150,7 @@ export default function VideoGenerator({ url }: VideoGeneratorProps) {
                     <img
                       src={avatar.imageUrl}
                       alt={avatar.label}
-                      className="w-full aspect-square object-cover"
+                      className="w-full h-[180px] object-cover"
                     />
                     <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 p-2">
                       <p className="text-white text-sm text-center">{avatar.label}</p>
@@ -155,7 +169,7 @@ export default function VideoGenerator({ url }: VideoGeneratorProps) {
                 <button
                   type="button"
                   onClick={() => setSelectedVoice('male')}
-                  className={`flex-1 py-3 px-4 rounded-lg ${
+                  className={`flex-1 py-2 px-4 rounded-lg ${
                     selectedVoice === 'male'
                       ? 'bg-blue-500 text-white'
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -166,7 +180,7 @@ export default function VideoGenerator({ url }: VideoGeneratorProps) {
                 <button
                   type="button"
                   onClick={() => setSelectedVoice('female')}
-                  className={`flex-1 py-3 px-4 rounded-lg ${
+                  className={`flex-1 py-2 px-4 rounded-lg ${
                     selectedVoice === 'female'
                       ? 'bg-blue-500 text-white'
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -180,7 +194,7 @@ export default function VideoGenerator({ url }: VideoGeneratorProps) {
             <button
               type="submit"
               disabled={loading || !selectedAvatar || !newsUrl}
-              className={`w-full py-4 px-6 rounded-xl text-lg font-medium transition-all duration-200
+              className={`w-full py-3 px-6 rounded-xl text-lg font-medium transition-all duration-200
                 ${loading || !selectedAvatar || !newsUrl
                   ? 'bg-gray-400 cursor-not-allowed'
                   : 'bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:opacity-90'
@@ -202,7 +216,15 @@ export default function VideoGenerator({ url }: VideoGeneratorProps) {
 
           {error && (
             <div className="p-4 bg-red-100 text-red-700 rounded-md">
-              {error}
+              <p>{error.message}</p>
+              {error.retryable && (
+                <button
+                  onClick={(e) => handleSubmit(e)}
+                  className="mt-2 text-blue-600 hover:text-blue-800 underline"
+                >
+                  Try Again
+                </button>
+              )}
             </div>
           )}
         </div>
@@ -220,11 +242,12 @@ export default function VideoGenerator({ url }: VideoGeneratorProps) {
           {videoUrl ? (
             <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
               <h2 className="text-xl font-semibold mb-4">Generated Video</h2>
-              <div className="aspect-w-16 aspect-h-9 rounded-lg overflow-hidden">
+              <div className="relative mx-auto rounded-lg overflow-hidden" style={{ maxWidth: "700px", height: "420px" }}>
                 <video
                   controls
-                  className="w-full h-full object-cover"
+                  className="absolute inset-0 w-full h-full object-cover bg-black"
                   src={videoUrl}
+                  playsInline
                 />
               </div>
               <div className="mt-4 flex justify-end">
@@ -241,11 +264,15 @@ export default function VideoGenerator({ url }: VideoGeneratorProps) {
               </div>
             </div>
           ) : (
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 flex flex-col items-center justify-center min-h-[400px]">
-              <svg className="w-16 h-16 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
-              </svg>
-              <p className="text-gray-500 text-lg">Your generated video will appear here</p>
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
+              <div className="relative mx-auto rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700" style={{ maxWidth: "700px", height: "420px" }}>
+                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                  <svg className="w-16 h-16 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                  </svg>
+                  <p className="text-gray-500 text-lg">Your generated video will appear here</p>
+                </div>
+              </div>
             </div>
           )}
         </div>

@@ -87,35 +87,54 @@ export async function POST(request: NextRequest) {
     
     return NextResponse.json(
       { 
-        error: 'Failed to process request',
-        details: errorMessage,
-        success: false
+        error: errorMessage,
+        retryable: errorMessage.includes('high demand') || errorMessage.includes('Model too busy')
       },
-      { status: 500 }
+      { 
+        status: errorMessage.includes('Missing required fields') ? 400 : 500,
+        headers: { 'Content-Type': 'application/json' }
+      }
     );
   }
 }
 
-async function fetchAndSummarizeArticle(url: string): Promise<string> {
-  if (!process.env.BASE_URL) {
-    throw new Error('BASE_URL environment variable is not set');
-  }
-
+async function fetchAndSummarizeArticle(url: string) {
   try {
     const response = await fetch(`${process.env.BASE_URL}/api/summarize`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ url, type: 'url' })
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ 
+        url,
+        type: 'url'
+      }),
     });
 
     if (!response.ok) {
-      throw new Error(`Summarization failed with status: ${response.status}`);
+      const errorData = await response.json().catch(() => ({}));
+      const errorMessage = errorData.error || `Summarization failed with status: ${response.status}`;
+      
+      if (response.status === 503 || errorMessage.includes('Model too busy')) {
+        throw new Error('Service is currently experiencing high demand. Please try again in a few moments.');
+      }
+      
+      throw new Error(errorMessage);
     }
 
     const data = await response.json();
     return data.summary;
   } catch (error) {
     console.error('Error in fetchAndSummarizeArticle:', error);
-    throw new Error('Failed to fetch and summarize article: ' + (error instanceof Error ? error.message : 'Unknown error'));
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    
+    // Provide more user-friendly error messages
+    if (errorMessage.includes('Model too busy') || errorMessage.includes('high demand')) {
+      throw new Error('Our AI service is currently experiencing high traffic. Please try again in a few moments.');
+    } else if (errorMessage.includes('ECONNREFUSED') || errorMessage.includes('ETIMEDOUT')) {
+      throw new Error('Unable to connect to the service. Please check your internet connection and try again.');
+    } else {
+      throw new Error('Failed to generate summary: ' + errorMessage);
+    }
   }
 } 
