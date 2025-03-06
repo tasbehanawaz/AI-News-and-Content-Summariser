@@ -140,8 +140,8 @@ export async function POST(req: Request) {
 }
 
 async function generateSummary(text: string, type: string, maxRetries = 3, initialDelay = 2000) {
-  // Truncate text if it's too long (typical model limit is around 1024 tokens)
-  const maxChars = 4096;
+  // Truncate text if too long (typical model limit is around 1024 tokens)
+  const maxChars = 3500;
   const truncatedText = text.length > maxChars ? text.substring(0, maxChars) : text;
   let attempt = 0;
   
@@ -158,11 +158,11 @@ async function generateSummary(text: string, type: string, maxRetries = 3, initi
           body: JSON.stringify({ 
             inputs: truncatedText,
             parameters: {
-              max_length: 150,
-              min_length: 50,
+              max_length: 130,
+              min_length: 30,
               length_penalty: 2.0,
               num_beams: 4,
-              do_sample: false
+              early_stopping: true
             }
           })
         }
@@ -180,15 +180,23 @@ async function generateSummary(text: string, type: string, maxRetries = 3, initi
 
       const result = await response.json();
       
+      // BART model specific response handling
+      let summaryText = '';
       if (Array.isArray(result) && result.length > 0) {
-        const summaryText = result[0].summary_text || result[0].generated_text;
-        return {
-          summary: summaryText,
-          confidenceScore: 0.95 // Default confidence score
-        };
+        summaryText = result[0].summary_text || '';
+      } else if (typeof result === 'object' && result !== null) {
+        summaryText = result.summary_text || '';
       }
       
-      throw new Error('Invalid response format from API');
+      if (!summaryText) {
+        console.error('API Response:', JSON.stringify(result, null, 2));
+        throw new Error('Failed to generate summary from API response');
+      }
+
+      return {
+        summary: summaryText.trim(),
+        confidenceScore: 0.95 // Default confidence score
+      };
 
     } catch (error) {
       attempt++;
