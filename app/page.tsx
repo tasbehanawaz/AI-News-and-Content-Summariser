@@ -100,7 +100,7 @@ export default function Home() {
 
   const VerificationBadge = ({ isVerified }: { isVerified: boolean }) => (
     <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm ${
-      isVerified ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+      isVerified ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300'
     }`}>
       {isVerified ? (
         <>
@@ -121,10 +121,10 @@ export default function Home() {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-indigo-950 dark:via-purple-950 dark:to-blue-950 bg-noise">
       <div className="max-w-7xl mx-auto px-4 py-8">
         <header className="mb-8 text-center">
-          <h1 className="text-4xl md:text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600 mb-3">
+          <h1 className="text-4xl md:text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-500 to-purple-600 dark:from-blue-400 dark:to-purple-400 mb-3">
             AI News Summariser
           </h1>
           <p className="text-lg text-gray-600 dark:text-gray-300">
@@ -133,15 +133,15 @@ export default function Home() {
         </header>
 
         <main>
-          {/* Navigation Tabs - Now with glass effect */}
-          <div className="backdrop-blur-md bg-white/30 dark:bg-gray-800/30 rounded-t-2xl border-b border-gray-200/50 dark:border-gray-700/50 sticky top-0 z-10">
+          {/* Navigation Tabs - Now with enhanced glass effect */}
+          <div className="backdrop-blur-md bg-white/30 dark:bg-gray-800/20 rounded-t-2xl border-b border-gray-200/50 dark:border-indigo-900/50 sticky top-0 z-10 shadow-lg">
             <div className="flex">
               <button
                 onClick={() => handleTabChange('browse')}
                 className={`flex-1 py-4 px-6 text-center focus:outline-none transition-all duration-200 ${
                   activeTab === 'browse'
-                    ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-t-2xl'
-                    : 'text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200'
+                    ? 'bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-500 dark:to-purple-500 text-white rounded-t-2xl shadow-lg'
+                    : 'text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white hover:bg-white/10 dark:hover:bg-white/5'
                 }`}
               >
                 <div className="flex items-center justify-center space-x-2">
@@ -155,8 +155,8 @@ export default function Home() {
                 onClick={() => handleTabChange('article')}
                 className={`flex-1 py-4 px-6 text-center focus:outline-none transition-all duration-200 ${
                   activeTab === 'article'
-                    ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-t-2xl'
-                    : 'text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200'
+                    ? 'bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-500 dark:to-purple-500 text-white rounded-t-2xl shadow-lg'
+                    : 'text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white hover:bg-white/10 dark:hover:bg-white/5'
                 }`}
               >
                 <div className="flex items-center justify-center space-x-2">
@@ -170,8 +170,8 @@ export default function Home() {
                 onClick={() => handleTabChange('video')}
                 className={`flex-1 py-4 px-6 text-center focus:outline-none transition-all duration-200 ${
                   activeTab === 'video'
-                    ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-t-2xl'
-                    : 'text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200'
+                    ? 'bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-500 dark:to-purple-500 text-white rounded-t-2xl shadow-lg'
+                    : 'text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white hover:bg-white/10 dark:hover:bg-white/5'
                 }`}
               >
                 <div className="flex items-center justify-center space-x-2">
@@ -184,8 +184,8 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Content Area - Now with continuous design */}
-          <div className="backdrop-blur-md bg-white/40 dark:bg-gray-800/40 rounded-b-2xl shadow-xl">
+          {/* Content Area - Enhanced glass effect */}
+          <div className="backdrop-blur-md bg-white/40 dark:bg-gray-800/20 rounded-b-2xl shadow-xl border border-gray-200/30 dark:border-indigo-900/30">
             <div className="p-6">
               {activeTab === 'browse' ? (
                 <NewsFeed onSelectArticle={handleNewsArticleSelect} />
@@ -208,10 +208,10 @@ export default function Home() {
                           value={url}
                           onChange={(e) => setUrl(e.target.value)}
                           placeholder={activeTab === 'article' ? "Paste article URL here" : "Paste news article URL for video summary"}
-                          className="w-full p-4 bg-white/50 dark:bg-gray-700/50 border border-gray-200/50 dark:border-gray-600/50 rounded-xl 
+                          className="w-full p-4 bg-white/50 dark:bg-gray-800/50 border border-gray-200/50 dark:border-indigo-800/50 rounded-xl 
                                    focus:ring-2 focus:ring-blue-500 focus:border-transparent
-                                   transition-all duration-200 group-hover:bg-white/70 dark:group-hover:bg-gray-700/70
-                                   placeholder-gray-400 text-lg"
+                                   transition-all duration-200 group-hover:bg-white/70 dark:group-hover:bg-gray-700/40
+                                   placeholder-gray-400 text-lg shadow-inner"
                           required
                         />
                         {url && (
@@ -230,10 +230,10 @@ export default function Home() {
                     <button
                       type="submit"
                       disabled={loading}
-                      className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-4 px-6 
+                      className="w-full bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-500 dark:to-purple-500 text-white py-4 px-6 
                                rounded-xl text-lg font-medium hover:opacity-90 transition-all duration-200
                                disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed
-                               transform hover:-translate-y-0.5 active:translate-y-0"
+                               transform hover:-translate-y-0.5 active:translate-y-0 shadow-lg"
                     >
                       {loading ? (
                         <span className="flex items-center justify-center">
@@ -253,28 +253,28 @@ export default function Home() {
 
           {/* URL Selection Modal */}
           {showUrlModal && (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-              <div className="bg-white dark:bg-gray-800 rounded-xl p-6 max-w-md w-full mx-4">
-                <h3 className="text-lg font-semibold mb-4">Choose Summary Type</h3>
+            <div className="fixed inset-0 bg-black bg-opacity-70 backdrop-blur-sm flex items-center justify-center z-50">
+              <div className="bg-white dark:bg-gray-800/90 rounded-xl p-6 max-w-md w-full mx-4 shadow-2xl border border-gray-200/50 dark:border-indigo-900/50">
+                <h3 className="text-lg font-semibold mb-4 dark:text-white">Choose Summary Type</h3>
                 <p className="text-gray-600 dark:text-gray-300 mb-6">
                   How would you like to summarise this article?
                 </p>
                 <div className="space-y-3">
                   <button
                     onClick={() => handleUrlModalChoice('text')}
-                    className="w-full py-3 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    className="w-full py-3 px-4 bg-blue-600 dark:bg-blue-500 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors shadow-md"
                   >
                     Text Summary
                   </button>
                   <button
                     onClick={() => handleUrlModalChoice('video')}
-                    className="w-full py-3 px-4 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+                    className="w-full py-3 px-4 bg-purple-600 dark:bg-purple-500 text-white rounded-lg hover:bg-purple-700 dark:hover:bg-purple-600 transition-colors shadow-md"
                   >
                     Video Summary
                   </button>
                   <button
                     onClick={() => setShowUrlModal(false)}
-                    className="w-full py-3 px-4 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors"
+                    className="w-full py-3 px-4 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
                   >
                     Cancel
                   </button>
@@ -284,12 +284,12 @@ export default function Home() {
           )}
 
           {error && (
-            <div className="bg-red-50 dark:bg-red-900/50 border-l-4 border-red-500 p-6 rounded-lg space-y-3">
+            <div className="bg-red-50 dark:bg-red-900/30 border-l-4 border-red-500 p-6 rounded-lg shadow-md space-y-3 mt-8">
               <div className="flex items-center">
-                <svg className="w-5 h-5 text-red-700 dark:text-red-200 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5 text-red-700 dark:text-red-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                <p className="text-red-700 dark:text-red-200 font-medium">{error}</p>
+                <p className="text-red-700 dark:text-red-400 font-medium">{error}</p>
               </div>
               {error.includes('forbidden') && (
                 <div className="text-sm text-red-600 dark:text-red-300 pl-7">
@@ -307,10 +307,10 @@ export default function Home() {
 
           {/* Article Summary View */}
           {activeTab === 'article' && summaryData && !error && (
-            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8 backdrop-blur-lg bg-opacity-90 mt-8">
+            <div className="bg-white/80 dark:bg-gray-800/50 rounded-2xl shadow-xl p-8 backdrop-blur-lg mt-8 border border-gray-200/30 dark:border-indigo-900/30">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-2xl font-semibold text-gray-800 dark:text-white flex items-center">
-                  <svg className="w-6 h-6 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-6 h-6 mr-2 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                   </svg>
                   Summary
@@ -320,7 +320,7 @@ export default function Home() {
                 )}
               </div>
 
-              <div className="mb-6 p-4 bg-gray-50 dark:bg-gray-900 rounded-xl">
+              <div className="mb-6 p-4 bg-gray-50 dark:bg-gray-900/60 rounded-xl shadow-inner">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                   <div className="flex flex-col">
                     <span className="text-gray-500 dark:text-gray-400">Source</span>
@@ -343,19 +343,19 @@ export default function Home() {
                 </div>
               </div>
 
-              <div className="bg-gray-50 dark:bg-gray-900 rounded-xl p-6">
+              <div className="bg-gray-50 dark:bg-gray-900/60 rounded-xl p-6 shadow-inner">
                 <p className="text-gray-800 dark:text-gray-200 leading-relaxed mb-6">
                   {summaryData.summary}
                 </p>
                 
-                <div className="border-t border-gray-200 dark:border-gray-700 pt-4 mt-4">
+                <div className="border-t border-gray-200 dark:border-gray-700/50 pt-4 mt-4">
                   <div className="flex items-center justify-between text-sm">
                     <div className="flex items-center">
                       <span className="text-gray-500 dark:text-gray-400 mr-2">AI Confidence Score:</span>
                       <div className="flex items-center">
                         <div className="w-24 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
                           <div 
-                            className="h-full bg-green-500" 
+                            className="h-full bg-gradient-to-r from-blue-500 to-purple-500"
                             style={{ width: `${summaryData.aiMetrics?.confidenceScore || 0}%` }}
                           />
                         </div>
@@ -375,17 +375,17 @@ export default function Home() {
 
           {/* Video Summary View */}
           {activeTab === 'video' && videoGenerated && !error && (
-            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8 backdrop-blur-lg bg-opacity-90 mt-8">
+            <div className="bg-white/80 dark:bg-gray-800/50 rounded-2xl shadow-xl p-8 backdrop-blur-lg mt-8 border border-gray-200/30 dark:border-indigo-900/30">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-2xl font-semibold text-gray-800 dark:text-white flex items-center">
-                  <svg className="w-6 h-6 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-6 h-6 mr-2 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
                   </svg>
                   Video Summary
                 </h2>
               </div>
 
-              <div className="aspect-w-16 aspect-h-9 rounded-xl overflow-hidden">
+              <div className="aspect-w-16 aspect-h-9 rounded-xl overflow-hidden shadow-lg">
                 <video 
                   className="w-full h-full object-cover"
                   controls
@@ -400,7 +400,7 @@ export default function Home() {
                 <a
                   href={videoUrl}
                   download="news-summary.mp4"
-                  className="inline-flex items-center px-4 py-2 text-sm font-medium text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
+                  className="inline-flex items-center px-4 py-2 text-sm font-medium text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
                 >
                   <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
@@ -413,7 +413,7 @@ export default function Home() {
 
           {/* Empty State - Only show for Article tab */}
           {activeTab === 'article' && !summaryData && !loading && !error && (
-            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8 backdrop-blur-lg bg-opacity-90 mt-8">
+            <div className="bg-white/80 dark:bg-gray-800/50 rounded-2xl shadow-xl p-8 backdrop-blur-lg mt-8 border border-gray-200/30 dark:border-indigo-900/30">
               <div className="flex flex-col items-center justify-center h-[200px] text-gray-400 dark:text-gray-500">
                 <svg className="w-12 h-12 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>

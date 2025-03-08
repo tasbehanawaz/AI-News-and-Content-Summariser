@@ -113,6 +113,7 @@ export class VideoService {
     }
   }
 
+  // Fall back video
   private async generateFallbackVideo(videoPath: string): Promise<string> {
     const enhancedVideoPath = path.join(os.tmpdir(), `enhanced-${Date.now()}.mp4`);
     
@@ -135,6 +136,8 @@ export class VideoService {
     }
   }
 
+
+  // Basic video 
   async generateBasicVideo(text: string, avatarPath: string, audioPath: string): Promise<string> {
     const outputPath = path.join(process.cwd(), 'public', 'generated', `${uuidv4()}.mp4`);
     
