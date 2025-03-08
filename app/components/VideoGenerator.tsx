@@ -121,7 +121,7 @@ export default function VideoGenerator({ url }: VideoGeneratorProps) {
         {/* Left Column - Controls */}
         <div className="space-y-6 max-w-lg">
           <h1 className="text-2xl font-bold">Video Generator</h1>
-          
+
           {newsUrl && (
             <div className="p-4 bg-blue-50 rounded-lg">
               <p className="text-sm text-blue-800">
@@ -140,18 +140,19 @@ export default function VideoGenerator({ url }: VideoGeneratorProps) {
                 {AVATAR_OPTIONS.map((avatar) => (
                   <div
                     key={avatar.id}
-                    className={`relative cursor-pointer rounded-lg overflow-hidden border-2 transition-all ${
-                      selectedAvatar === avatar.id
-                        ? 'border-blue-500 ring-2 ring-blue-500'
-                        : 'border-gray-200 hover:border-blue-300'
-                    }`}
+                    className={`relative cursor-pointer rounded-lg overflow-hidden border-2 transition-all ${selectedAvatar === avatar.id
+                      ? 'border-blue-500 ring-2 ring-blue-500'
+                      : 'border-gray-200 hover:border-blue-300'
+                      }`}
                     onClick={() => setSelectedAvatar(avatar.id)}
                   >
-                    <img
-                      src={avatar.imageUrl}
-                      alt={avatar.label}
-                      className="w-full h-[180px] object-cover"
-                    />
+                    <div className="aspect-w-3 aspect-h-4"> {/* Or whatever matches your avatars */}
+                      <img
+                        src={avatar.imageUrl}
+                        alt={avatar.label}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
                     <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 p-2">
                       <p className="text-white text-sm text-center">{avatar.label}</p>
                     </div>
@@ -169,22 +170,20 @@ export default function VideoGenerator({ url }: VideoGeneratorProps) {
                 <button
                   type="button"
                   onClick={() => setSelectedVoice('male')}
-                  className={`flex-1 py-2 px-4 rounded-lg ${
-                    selectedVoice === 'male'
-                      ? 'bg-blue-500 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
+                  className={`flex-1 py-2 px-4 rounded-lg ${selectedVoice === 'male'
+                    ? 'bg-blue-500 text-white'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
                 >
                   Male Voice
                 </button>
                 <button
                   type="button"
                   onClick={() => setSelectedVoice('female')}
-                  className={`flex-1 py-2 px-4 rounded-lg ${
-                    selectedVoice === 'female'
-                      ? 'bg-blue-500 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
+                  className={`flex-1 py-2 px-4 rounded-lg ${selectedVoice === 'female'
+                    ? 'bg-blue-500 text-white'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
                 >
                   Female Voice
                 </button>
@@ -230,7 +229,7 @@ export default function VideoGenerator({ url }: VideoGeneratorProps) {
         </div>
 
         {/* Right Column - Video Output */}
-        <div className="space-y-6">
+        <div className="space-y-4">
           {isUsingFallback && videoUrl && (
             <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
               <p className="text-sm text-yellow-800">
@@ -239,44 +238,38 @@ export default function VideoGenerator({ url }: VideoGeneratorProps) {
             </div>
           )}
 
-          {videoUrl ? (
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
-              <h2 className="text-xl font-semibold mb-4">Generated Video</h2>
-              <div className="relative mx-auto rounded-lg overflow-hidden" style={{ maxWidth: "700px", height: "420px" }}>
-                <video
-                  controls
-                  className="absolute inset-0 w-full h-full object-cover bg-black"
-                  src={videoUrl}
-                  playsInline
-                />
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-4">
+            <h2 className="text-xl font-semibold mb-4">Generated Video</h2>
+
+            {videoUrl ? (
+              <div className="w-full">
+                {/* Fixed container with taller height to better match presenter proportions */}
+                <div className="relative w-full rounded-lg overflow-hidden">
+                  <div className="w-full" style={{ maxWidth: "800px", margin: "auto" }}>
+                    <video
+                      controls
+                      className="w-full h-auto"
+                      style={{ objectFit: 'cover' }}
+                      src={videoUrl}
+                      playsInline
+                    />
+
+                  </div>
+                </div>
               </div>
-              <div className="mt-4 flex justify-end">
-                <a 
-                  href={videoUrl}
-                  download
-                  className="inline-flex items-center px-4 py-2 text-sm font-medium text-blue-600 hover:text-blue-800"
-                >
-                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
-                  </svg>
-                  Download Video
-                </a>
-              </div>
-            </div>
-          ) : (
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
-              <div className="relative mx-auto rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700" style={{ maxWidth: "700px", height: "420px" }}>
-                <div className="absolute inset-0 flex flex-col items-center justify-center">
+            ) : (
+              <div className="relative w-full bg-gray-100 dark:bg-gray-700 rounded-lg overflow-hidden" style={{ height: "500px" }}>
+                <div className="flex flex-col items-center justify-center h-full">
                   <svg className="w-16 h-16 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
                   </svg>
                   <p className="text-gray-500 text-lg">Your generated video will appear here</p>
                 </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </div>
     </div>
   );
-} 
+}

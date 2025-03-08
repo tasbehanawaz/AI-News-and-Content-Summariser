@@ -125,7 +125,7 @@ export default function Home() {
       <div className="max-w-7xl mx-auto px-4 py-8">
         <header className="mb-8 text-center">
           <h1 className="text-4xl md:text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600 mb-3">
-            AI News Summarizer
+            AI News Summariser
           </h1>
           <p className="text-lg text-gray-600 dark:text-gray-300">
             Get authenticated summaries in text or video format
@@ -241,9 +241,9 @@ export default function Home() {
                             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                           </svg>
-                          {activeTab === 'article' ? 'Analyzing & Summarizing...' : 'Generating Video...'}
+                          {activeTab === 'article' ? 'Analyzing & Summarising...' : 'Generating Video...'}
                         </span>
-                      ) : (activeTab === 'article' ? 'Summarize' : 'Generate Video')}
+                      ) : (activeTab === 'article' ? 'Summarise' : 'Generate Video')}
                     </button>
                   </form>
                 </div>
@@ -257,7 +257,7 @@ export default function Home() {
               <div className="bg-white dark:bg-gray-800 rounded-xl p-6 max-w-md w-full mx-4">
                 <h3 className="text-lg font-semibold mb-4">Choose Summary Type</h3>
                 <p className="text-gray-600 dark:text-gray-300 mb-6">
-                  How would you like to summarize this article?
+                  How would you like to summarise this article?
                 </p>
                 <div className="space-y-3">
                   <button
@@ -307,7 +307,7 @@ export default function Home() {
 
           {/* Article Summary View */}
           {activeTab === 'article' && summaryData && !error && (
-            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8 backdrop-blur-lg bg-opacity-90">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8 backdrop-blur-lg bg-opacity-90 mt-8">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-2xl font-semibold text-gray-800 dark:text-white flex items-center">
                   <svg className="w-6 h-6 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -375,7 +375,7 @@ export default function Home() {
 
           {/* Video Summary View */}
           {activeTab === 'video' && videoGenerated && !error && (
-            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8 backdrop-blur-lg bg-opacity-90">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8 backdrop-blur-lg bg-opacity-90 mt-8">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-2xl font-semibold text-gray-800 dark:text-white flex items-center">
                   <svg className="w-6 h-6 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">

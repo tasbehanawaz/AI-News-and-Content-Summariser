@@ -12,6 +12,9 @@ export async function fetchArticleContent(url: string): Promise<string> {
     $('[class*="ad-"], [class*="Advertisement"], [id*="ad-"]').remove();
     $('meta, link, iframe').remove();
 
+    // Get the headline
+    const headline = $('h1').first().text().trim();
+
     // For CNN specifically
     if (url.includes('cnn.com')) {
       // Get the main article content
@@ -22,10 +25,9 @@ export async function fetchArticleContent(url: string): Promise<string> {
         .filter(text => text.length > 0)
         .join('\n\n');
 
-      // Get the headline
-      const headline = $('h1').first().text().trim();
-
-      return `${headline}\n\n${articleText}`;
+      // Limit content length to avoid API issues
+      const fullContent = `${headline}\n\n${articleText}`;
+      return fullContent.length > 5000 ? fullContent.substring(0, 5000) : fullContent;
     }
 
     // For other news sites, get main content
@@ -37,17 +39,18 @@ export async function fetchArticleContent(url: string): Promise<string> {
       .join('\n\n');
 
     // Fallback to any paragraph text if specific selectors fail
+    let content = mainContent;
     if (!mainContent) {
-      const paragraphs = $('p')
+      content = $('p')
         .map((_, el) => $(el).text().trim())
         .get()
         .filter(text => text.length > 0 && !text.includes('Advertisement'))
         .join('\n\n');
-
-      return paragraphs;
     }
 
-    return mainContent;
+    // Combine headline and content, then limit length
+    const fullContent = headline ? `${headline}\n\n${content}` : content;
+    return fullContent.length > 5000 ? fullContent.substring(0, 5000) : fullContent;
   } catch (error) {
     console.error('Error fetching article content:', error);
     throw new Error('Failed to fetch article content');
