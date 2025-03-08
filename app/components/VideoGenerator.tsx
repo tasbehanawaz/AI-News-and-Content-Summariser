@@ -233,7 +233,7 @@ export default function VideoGenerator({ url }: VideoGeneratorProps) {
           {isUsingFallback && videoUrl && (
             <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
               <p className="text-sm text-yellow-800">
-                Note: Using simplified video generation mode. The video will play with basic animations instead of lip-sync.
+                Note: Using simplified video generation mode. The video will play basic without lip-sync.
               </p>
             </div>
           )}
