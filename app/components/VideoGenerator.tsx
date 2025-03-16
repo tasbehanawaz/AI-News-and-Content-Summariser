@@ -132,7 +132,7 @@ export default function VideoGenerator({ url }: VideoGeneratorProps) {
                 {AVATAR_OPTIONS.map((avatar) => (
                   <div
                     key={avatar.id}
-                    className={`relative cursor-pointer rounded-lg overflow-hidden border-2 transition-all ${
+                    className={`relative cursor-pointer rounded-lg overflow-hidden border-2 transition-all max-w-[300px] mx-auto ${
                       selectedAvatar === avatar.id
                         ? 'border-blue-500 ring-2 ring-blue-500'
                         : 'border-gray-200 hover:border-blue-300'

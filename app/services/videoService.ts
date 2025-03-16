@@ -17,7 +17,7 @@ interface HeyGenConfig {
 }
 
 export class VideoService {
-  constructor() {}
+  constructor() { }
 
   async generateVideoFromText(
     text: string,
@@ -48,7 +48,7 @@ export class VideoService {
     }
   }
 
-  
+
 
   async generateHeyGenVideo(config: HeyGenConfig): Promise<string> {
     try {
@@ -56,20 +56,20 @@ export class VideoService {
         throw new Error('HEYGEN_API_KEY not set');
       }
       console.log('HEYGEN_API_KEY is set:', !!process.env.HEYGEN_API_KEY);
-  
+
       // Sanitize and truncate the text
       const sanitizedText = config.text
-        .replace(/[’‘“”]/g, "'")   // Replace curly quotes with straight quotes
+        .replace(/[’‘"”]/g, "'")   // Replace curly quotes with straight quotes
         .slice(0, 200);            // Truncate to 200 characters (adjust if needed)
-  
+
       console.log('Sanitized text:', sanitizedText);
-  
+
       console.log('Making HeyGen API request with config:', JSON.stringify({
         text: sanitizedText,
         avatarId: config.avatarId,
         voiceId: config.voiceId,
       }));
-  
+
       const response = await axios.post(
         'https://api.heygen.com/v2/video/generate',
         {
@@ -100,14 +100,14 @@ export class VideoService {
           timeout: 300000,
         }
       );
-  
+
       console.log('HeyGen API response:', JSON.stringify(response.data, null, 2));
-  
+
       if (!response.data?.data?.video_id) {
         console.error('Invalid API response:', JSON.stringify(response.data, null, 2));
         throw new Error('No video ID in response. Possible issue with API request.');
       }
-  
+
       return await this.checkHeyGenVideoStatus(response.data.data.video_id);
     } catch (error) {
       if (axios.isAxiosError(error)) {
@@ -122,76 +122,101 @@ export class VideoService {
       throw error;
     }
   }
-  
-  
+
+
   async checkHeyGenVideoStatus(videoId: string): Promise<string> {
     try {
       if (!process.env.HEYGEN_API_KEY) {
         throw new Error('HEYGEN_API_KEY not set');
       }
-  
-      const maxAttempts = 30;
-      const pollInterval = 10000; // 10 seconds
+
+      const maxAttempts = 20;
+      const pollInterval = 20000; // 20 seconds
       let attempts = 0;
-  
+
       console.log(`Checking status for video ID: ${videoId}`);
-  
+
+      // Initial delay before first status check
+      console.log('Waiting 30 seconds before first status check...');
+      await new Promise((resolve) => setTimeout(resolve, 30000));
+
       while (attempts < maxAttempts) {
         try {
+          // Ensure video ID is properly formatted
+          const encodedVideoId = encodeURIComponent(videoId.trim());
+
+          console.log(`Making status check request for video ID: ${encodedVideoId} (attempt ${attempts + 1}/${maxAttempts})`);
+
           const response = await axios.get(
-            `https://api.heygen.com/v2/video/status?video_id=${videoId}`,
+            `https://api.heygen.com/v1/video_status.get?video_id=${encodedVideoId}`,
             {
-              headers: { 
+              headers: {
                 'X-Api-Key': process.env.HEYGEN_API_KEY,
                 'Content-Type': 'application/json',
-                'User-Agent': 'curl/7.68.0' // Add the same user agent as in generation
+                'Accept': 'application/json',
+                'User-Agent': 'curl/7.68.0'
               }
             }
           );
-  
-          console.log(`Status check attempt ${attempts + 1}:`, JSON.stringify(response.data, null, 2));
-  
-          // Check if v2 api response structure is different
-          const status = response.data?.data?.status;
-          const videoUrl = response.data?.data?.video_url;
-  
-          if (status === 'completed' && videoUrl) {
-            console.log('Video generation completed successfully');
-            return videoUrl;
+
+          console.log(`Status check attempt ${attempts + 1} response:`, JSON.stringify(response.data, null, 2));
+
+          // Check response structure according to v1 API
+          if (response.data?.code === 100) {
+            const status = response.data?.data?.status;
+            const videoUrl = response.data?.data?.video_url;
+            const error = response.data?.data?.error;
+
+            if (status === 'completed' && videoUrl) {
+              console.log('Video generation completed successfully');
+              return videoUrl;
+            }
+
+            if (status === 'failed') {
+              const errorMessage = error?.detail || error?.message || 'Unknown error';
+              console.error(`HeyGen video generation failed: ${errorMessage}`);
+              throw new Error(`HeyGen video generation failed: ${errorMessage}`);
+            }
+
+            console.log(`Video still processing (status: ${status}). Waiting for next check (attempt ${attempts + 1}/${maxAttempts})...`);
+          } else {
+            console.log(`Unexpected response code: ${response.data?.code}. Waiting for next check...`);
           }
-  
-          if (status === 'failed') {
-            const errorMessage = response.data?.data?.error || 'Unknown error';
-            console.error(`HeyGen video generation failed: ${errorMessage}`);
-            throw new Error(`HeyGen video generation failed: ${errorMessage}`);
-          }
-  
-          console.log(`Waiting for HeyGen video generation (attempt ${attempts + 1}/${maxAttempts})...`);
+
           await new Promise((resolve) => setTimeout(resolve, pollInterval));
           attempts++;
         } catch (error) {
-          // If we get a specific error we might want to retry with backoff
-          console.error(`Error in status check attempt ${attempts + 1}:`, error);
-          
-          // Add some backoff
-          const backoffTime = Math.min(pollInterval * (attempts + 1), 30000);
+          if (axios.isAxiosError(error)) {
+            console.error(`Error in status check attempt ${attempts + 1}:`, error.message);
+            console.error('Status code:', error.response?.status);
+            console.error('Error data:', JSON.stringify(error.response?.data, null, 2));
+          } else {
+            console.error(`Non-Axios error in status check:`, error);
+          }
+
+          // Implement exponential backoff with jitter
+          const baseDelay = Math.min(pollInterval * (attempts + 1), 60000);
+          const jitter = Math.floor(Math.random() * 5000);
+          const backoffTime = baseDelay + jitter;
+
+          console.log(`Retrying after ${backoffTime}ms (attempt ${attempts + 1}/${maxAttempts})...`);
           await new Promise((resolve) => setTimeout(resolve, backoffTime));
           attempts++;
         }
       }
-  
-      throw new Error(`HeyGen video processing timed out after ${maxAttempts} attempts`);
+
+      throw new Error(`HeyGen video processing timed out after ${maxAttempts} attempts. The video might still be processing - check your HeyGen account dashboard.`);
     } catch (error) {
       if (axios.isAxiosError(error)) {
-        console.error('Axios error checking HeyGen video status:');
+        console.error('Axios error in status check function:');
         console.error('Error message:', error.message);
         console.error('Status code:', error.response?.status);
         console.error('Error data:', JSON.stringify(error.response?.data, null, 2));
       } else {
-        console.error('Error checking HeyGen video status:', error);
+        console.error('Error in status check function:', error);
       }
       throw error;
     }
   }
-  
+
 }
