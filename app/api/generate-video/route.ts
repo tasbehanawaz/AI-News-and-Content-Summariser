@@ -1,24 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { VideoService } from '@/app/services/videoService';
-import path from 'path';
 import { prisma } from '@/lib/prisma';
-import { existsSync } from 'fs';
 
 // Initialize VideoService
 const videoService = new VideoService();
 
-const AVATAR_PATHS = {
-  'male': '/avatars/male.jpg',
-  'female': '/avatars/female.jpg'
+// Use only Daisy
+const AVATAR_MAP = {
+  'Daisy-inskirt-20220818': 'Daisy-inskirt-20220818'
 };
+
+// Fixed voice ID (the one that worked in your curl command)
+const FIXED_VOICE_ID = '2d5b0e6cf36f460aa7fc47e3eee4ba54';
 
 export async function POST(request: NextRequest) {
   try {
-    const { url, avatarId, voiceType } = await request.json();
+    const { url, avatarId } = await request.json();
 
-    if (!url || !avatarId || !voiceType) {
+    if (!url || !avatarId) {
       return NextResponse.json(
-        { error: 'URL, avatar, and voice type are required', success: false },
+        { error: 'URL and avatar are required', success: false },
         { status: 400 }
       );
     }
@@ -26,73 +27,47 @@ export async function POST(request: NextRequest) {
     // 1. Fetch and summarize the article
     const summary = await fetchAndSummarizeArticle(url);
 
-    // 2. Get the selected avatar image path
-    const avatarRelativePath = AVATAR_PATHS[avatarId as keyof typeof AVATAR_PATHS];
-    if (!avatarRelativePath) {
-      return NextResponse.json(
-        { 
-          error: 'Invalid avatar selected',
-          details: `Avatar ${avatarId} not found`,
-          success: false 
-        },
-        { status: 400 }
-      );
-    }
+    // 2. Map avatar selection for HeyGen
+    const selectedAvatarId = AVATAR_MAP[avatarId as keyof typeof AVATAR_MAP] || avatarId;
 
-    console.log('Avatar ID:', avatarId);
-    console.log('Avatar relative path:', avatarRelativePath);
-    
-    const avatarPath = path.join(process.cwd(), 'public', avatarRelativePath);
-    console.log('Full avatar path:', avatarPath);
+    console.log('Using HeyGen Avatar ID:', selectedAvatarId);
+    console.log('Using HeyGen Voice ID:', FIXED_VOICE_ID);
 
-    // Verify file exists
-    if (!existsSync(avatarPath)) {
-      return NextResponse.json(
-        { 
-          error: 'Avatar file not found',
-          details: `File not found at path: ${avatarPath}`,
-          success: false 
-        },
-        { status: 404 }
-      );
-    }
-
-    // 3. Generate the video with text-to-speech and lip sync
+    // 3. Generate the video using HeyGen
     const { videoUrl, usedFallback } = await videoService.generateVideoFromText(
       summary,
-      avatarPath,
-      voiceType as 'male' | 'female'
+      selectedAvatarId,
+      FIXED_VOICE_ID
     );
 
-    // 4. Save to database
+    // 4. Save to database (optional)
     const videoSummary = await prisma.videoSummary.create({
       data: {
         videoUrl,
         inputType: 'url',
         inputContent: url,
-        usedFallback
-      }
+        usedFallback,
+      },
     });
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       videoUrl,
       success: true,
       videoSummaryId: videoSummary.id,
-      usedFallback
+      usedFallback,
     });
-
   } catch (error) {
     console.error('Error in request processing:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    
+
     return NextResponse.json(
-      { 
+      {
         error: errorMessage,
-        retryable: errorMessage.includes('high demand') || errorMessage.includes('Model too busy')
+        retryable: errorMessage.includes('high demand') || errorMessage.includes('Model too busy'),
       },
-      { 
+      {
         status: errorMessage.includes('Missing required fields') ? 400 : 500,
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       }
     );
   }
@@ -100,41 +75,46 @@ export async function POST(request: NextRequest) {
 
 async function fetchAndSummarizeArticle(url: string) {
   try {
+    console.log(`Fetching and summarizing article from URL: ${url}`);
+
     const response = await fetch(`${process.env.BASE_URL}/api/summarize`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ 
-        url,
-        type: 'url'
-      }),
+      body: JSON.stringify({ url, type: 'url' }),
     });
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       const errorMessage = errorData.error || `Summarization failed with status: ${response.status}`;
-      
+
       if (response.status === 503 || errorMessage.includes('Model too busy')) {
-        throw new Error('Service is currently experiencing high demand. Please try again in a few moments.');
+        throw new Error(
+          'Service is currently experiencing high demand. Please try again in a few moments.'
+        );
       }
-      
+
       throw new Error(errorMessage);
     }
 
     const data = await response.json();
+    console.log(`Summary generated successfully, length: ${data.summary.length} characters`);
     return data.summary;
   } catch (error) {
     console.error('Error in fetchAndSummarizeArticle:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    
-    // Provide more user-friendly error messages
+
     if (errorMessage.includes('Model too busy') || errorMessage.includes('high demand')) {
-      throw new Error('Our AI service is currently experiencing high traffic. Please try again in a few moments.');
+      throw new Error(
+        'Our AI service is currently experiencing high traffic. Please try again in a few moments.'
+      );
     } else if (errorMessage.includes('ECONNREFUSED') || errorMessage.includes('ETIMEDOUT')) {
-      throw new Error('Unable to connect to the service. Please check your internet connection and try again.');
+      throw new Error(
+        'Unable to connect to the service. Please check your internet connection and try again.'
+      );
     } else {
       throw new Error('Failed to generate summary: ' + errorMessage);
     }
   }
-} 
+}
