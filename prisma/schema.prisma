@@ -44,11 +44,13 @@ model AIMetrics {
 }
 
 model VideoSummary {
-  id          String   @id @default(cuid())
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  videoUrl    String
-  inputType   String   // 'url' or 'text'
-  inputContent String  // The original URL or text input
-  usedFallback Boolean @default(false)
+  id           String   @id @default(cuid())
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  videoUrl     String
+  inputType    String   // 'url' or 'text'
+  inputContent String   // The original URL or text input
+  title        String?  // Article title
+  summary      String?  // Article summary
+  usedFallback Boolean  @default(false)
 }

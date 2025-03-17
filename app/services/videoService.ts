@@ -16,13 +16,20 @@ interface HeyGenConfig {
   voiceId: string;
 }
 
+interface VideoGenerationOptions {
+  optimize?: boolean;
+  format?: string;
+  quality?: string;
+}
+
 export class VideoService {
   constructor() { }
 
   async generateVideoFromText(
     text: string,
     avatarId: string,
-    voiceId: string
+    voiceId: string,
+    options?: VideoGenerationOptions
   ): Promise<{ videoUrl: string; usedFallback: boolean }> {
     let videoUrl: string | null = null;
     let usedFallback = false;
@@ -47,8 +54,6 @@ export class VideoService {
       throw error;
     }
   }
-
-
 
   async generateHeyGenVideo(config: HeyGenConfig): Promise<string> {
     try {
@@ -86,16 +91,18 @@ export class VideoService {
             },
             background: {
               type: 'color',
-              value: '#008000',  // Matches the working curl command
+              value: '#008000',
             },
           }],
           dimension: { width: 1280, height: 720 },
+          test_mode: false,
+          enhance: true,
         },
         {
           headers: {
             'X-Api-Key': process.env.HEYGEN_API_KEY,
             'Content-Type': 'application/json',
-            'User-Agent': 'curl/7.68.0' // add a curl-like User-Agent
+            'User-Agent': 'curl/7.68.0'
           },
           timeout: 300000,
         }
@@ -123,15 +130,14 @@ export class VideoService {
     }
   }
 
-
   async checkHeyGenVideoStatus(videoId: string): Promise<string> {
     try {
       if (!process.env.HEYGEN_API_KEY) {
         throw new Error('HEYGEN_API_KEY not set');
       }
 
-      const maxAttempts = 20;
-      const pollInterval = 20000; // 20 seconds
+      const maxAttempts = 30;
+      const pollInterval = 30000; // 20 seconds
       let attempts = 0;
 
       console.log(`Checking status for video ID: ${videoId}`);
@@ -168,8 +174,16 @@ export class VideoService {
             const error = response.data?.data?.error;
 
             if (status === 'completed' && videoUrl) {
-              console.log('Video generation completed successfully');
-              return videoUrl;
+              // Verify the video URL is accessible
+              try {
+                const videoCheck = await axios.head(videoUrl);
+                if (videoCheck.status === 200) {
+                  console.log('Video URL is accessible');
+                  return videoUrl;
+                }
+              } catch (videoCheckError) {
+                console.error('Video URL check failed:', videoCheckError);
+              }
             }
 
             if (status === 'failed') {
@@ -218,5 +232,4 @@ export class VideoService {
       throw error;
     }
   }
-
 }
