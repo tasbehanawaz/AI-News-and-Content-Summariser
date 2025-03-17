@@ -54,3 +54,26 @@ model VideoSummary {
   summary      String?  // Article summary
   usedFallback Boolean  @default(false)
 }
+
+model NewsletterPreferences {
+  id                String   @id @default(cuid())
+  userId            String   @unique
+  topics            String[]
+  frequency         String
+  time              String
+  days              String[]
+  notificationMethod String
+  enabled           Boolean  @default(false)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+model Article {
+  id          String   @id @default(cuid())
+  title       String
+  content     String   @db.Text
+  url         String
+  topic       String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}

@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import NewsFeed from './components/NewsFeed';
 import VideoGenerator from './components/VideoGenerator';
+import NewsletterPreferences from './components/NewsletterPreferences';
 
 interface SummaryData {
   summary: string;
@@ -19,7 +20,7 @@ interface SummaryData {
   };
 }
 
-type TabType = 'article' | 'video' | 'browse';
+type TabType = 'browse' | 'article' | 'video' | 'newsletter';
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<TabType>('browse');
@@ -133,55 +134,49 @@ export default function Home() {
         </header>
 
         <main>
-          {/* Navigation Tabs - Now with enhanced glass effect */}
           <div className="backdrop-blur-md bg-white/30 dark:bg-gray-800/20 rounded-t-2xl border-b border-gray-200/50 dark:border-indigo-900/50 sticky top-0 z-10 shadow-lg">
-            <div className="flex">
+            <nav className="flex space-x-1 p-2">
               <button
-                onClick={() => handleTabChange('browse')}
-                className={`flex-1 py-4 px-6 text-center focus:outline-none transition-all duration-200 ${
+                onClick={() => setActiveTab('browse')}
+                className={`flex-1 px-4 py-2 rounded-xl transition-all ${
                   activeTab === 'browse'
-                    ? 'bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-500 dark:to-purple-500 text-white rounded-t-2xl shadow-lg'
-                    : 'text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white hover:bg-white/10 dark:hover:bg-white/5'
+                    ? 'bg-blue-500 text-white shadow-lg'
+                    : 'hover:bg-white/50 dark:hover:bg-gray-700/50'
                 }`}
               >
-                <div className="flex items-center justify-center space-x-2">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9.5a2.5 2.5 0 00-2.5-2.5H15"/>
-                  </svg>
-                  <span>Browse News</span>
-                </div>
+                Browse News
               </button>
               <button
-                onClick={() => handleTabChange('article')}
-                className={`flex-1 py-4 px-6 text-center focus:outline-none transition-all duration-200 ${
+                onClick={() => setActiveTab('article')}
+                className={`flex-1 px-4 py-2 rounded-xl transition-all ${
                   activeTab === 'article'
-                    ? 'bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-500 dark:to-purple-500 text-white rounded-t-2xl shadow-lg'
-                    : 'text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white hover:bg-white/10 dark:hover:bg-white/5'
+                    ? 'bg-blue-500 text-white shadow-lg'
+                    : 'hover:bg-white/50 dark:hover:bg-gray-700/50'
                 }`}
               >
-                <div className="flex items-center justify-center space-x-2">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                  </svg>
-                  <span>Text Summary</span>
-                </div>
+                Text Summary
               </button>
               <button
-                onClick={() => handleTabChange('video')}
-                className={`flex-1 py-4 px-6 text-center focus:outline-none transition-all duration-200 ${
+                onClick={() => setActiveTab('video')}
+                className={`flex-1 px-4 py-2 rounded-xl transition-all ${
                   activeTab === 'video'
-                    ? 'bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-500 dark:to-purple-500 text-white rounded-t-2xl shadow-lg'
-                    : 'text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white hover:bg-white/10 dark:hover:bg-white/5'
+                    ? 'bg-blue-500 text-white shadow-lg'
+                    : 'hover:bg-white/50 dark:hover:bg-gray-700/50'
                 }`}
               >
-                <div className="flex items-center justify-center space-x-2">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
-                  </svg>
-                  <span>Video Summary</span>
-                </div>
+                Video Summary
               </button>
-            </div>
+              <button
+                onClick={() => setActiveTab('newsletter')}
+                className={`flex-1 px-4 py-2 rounded-xl transition-all ${
+                  activeTab === 'newsletter'
+                    ? 'bg-blue-500 text-white shadow-lg'
+                    : 'hover:bg-white/50 dark:hover:bg-gray-700/50'
+                }`}
+              >
+                Newsletter
+              </button>
+            </nav>
           </div>
 
           {/* Content Area - Enhanced glass effect */}
@@ -191,6 +186,8 @@ export default function Home() {
                 <NewsFeed onSelectArticle={handleNewsArticleSelect} />
               ) : activeTab === 'video' ? (
                 <VideoGenerator url={url} />
+              ) : activeTab === 'newsletter' ? (
+                <NewsletterPreferences userId="default-user" />
               ) : (
                 <div className="space-y-6">
                   <form onSubmit={handleSubmit} className="space-y-4">
