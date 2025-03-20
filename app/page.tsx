@@ -4,6 +4,10 @@ import { useState } from 'react';
 import NewsFeed from './components/NewsFeed';
 import VideoGenerator from './components/VideoGenerator';
 import NewsletterPreferences from './components/NewsletterPreferences';
+import NavMenu from './components/NavMenu';
+
+type TabType = 'browse' | 'article' | 'video';
+type PageType = TabType | 'newsletter' | 'settings' | 'account';
 
 interface SummaryData {
   summary: string;
@@ -20,90 +24,142 @@ interface SummaryData {
   };
 }
 
-type TabType = 'browse' | 'article' | 'video' | 'newsletter';
-
 export default function Home() {
   const [activeTab, setActiveTab] = useState<TabType>('browse');
+  const [currentPage, setCurrentPage] = useState<PageType>('browse');
   const [url, setUrl] = useState('');
-  const [summaryData, setSummaryData] = useState<SummaryData | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [videoGenerated, setVideoGenerated] = useState(false);
-  const [videoUrl, setVideoUrl] = useState('');
+  const [summaryData] = useState<SummaryData | null>(null);
+  const [error] = useState('');
   const [showUrlModal, setShowUrlModal] = useState(false);
   const [selectedUrl, setSelectedUrl] = useState('');
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError('');
-
-    try {
-      const response = await fetch('/api/summarize', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ 
-          url: url,
-          type: 'url'
-        }),
-      });
-
-      const data = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to process request');
-      }
-
-      if (data && data.summary && data.sourceMetadata && data.aiMetrics) {
-        setSummaryData(data);
-      } else {
-        throw new Error('Invalid response format from server');
-      }
-    } catch (error) {
-      console.error('Request failed:', error);
-      setError(error instanceof Error ? error.message : 'An unexpected error occurred');
-    } finally {
-      setLoading(false);
+  const handleNavigate = (page: string) => {
+    if (page === 'logout') {
+      // Handle logout logic here
+      return;
     }
+    setCurrentPage(page as PageType);
   };
 
   const handleNewsArticleSelect = (articleUrl: string) => {
-    console.log(`Article selected: ${articleUrl}`);
     setSelectedUrl(articleUrl);
     setShowUrlModal(true);
   };
 
   const handleUrlModalChoice = (choice: 'text' | 'video') => {
-    if (choice === 'text') {
-      setActiveTab('article');
+    setActiveTab(choice === 'text' ? 'article' : 'video');
       setUrl(selectedUrl);
-    } else {
-      setActiveTab('video');
-      setUrl(selectedUrl);
-    }
     setShowUrlModal(false);
   };
 
-  const handleTabChange = (tab: TabType) => {
-    setActiveTab(tab);
-    setError('');
-    setSummaryData(null);
-    setVideoGenerated(false);
-    setVideoUrl('');
-    // Don't clear URL when switching tabs
-  };
+  const renderContent = () => {
+    switch (currentPage) {
+      case 'newsletter':
+        return (
+          <div className="relative">
+            <button
+              onClick={() => setCurrentPage('browse')}
+              className="absolute -top-2 left-0 flex items-center text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-white transition-colors"
+            >
+              <svg className="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
+              </svg>
+              Back
+            </button>
+            <div className="pt-10">
+              <NewsletterPreferences userId="default-user" />
+            </div>
+          </div>
+        );
+      case 'settings':
+        return (
+          <div className="relative">
+            <button
+              onClick={() => setCurrentPage('browse')}
+              className="absolute -top-2 left-0 flex items-center text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-white transition-colors"
+            >
+              <svg className="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
+              </svg>
+              Back
+            </button>
+            <div className="bg-white/80 dark:bg-gray-800/50 rounded-2xl shadow-xl p-8 backdrop-blur-lg mt-8">
+              <h2 className="text-2xl font-semibold mb-6 text-gray-800 dark:text-white">Settings</h2>
+              {/* Add settings content here */}
+            </div>
+          </div>
+        );
+      case 'account':
+        return (
+          <div className="relative">
+            <button
+              onClick={() => setCurrentPage('browse')}
+              className="absolute -top-2 left-0 flex items-center text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-white transition-colors"
+            >
+              <svg className="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
+              </svg>
+              Back
+            </button>
+            <div className="bg-white/80 dark:bg-gray-800/50 rounded-2xl shadow-xl p-8 backdrop-blur-lg mt-8">
+              <h2 className="text-2xl font-semibold mb-6 text-gray-800 dark:text-white">Account</h2>
+              {/* Add account content here */}
+            </div>
+          </div>
+        );
+      default:
+        return (
+          <>
+            <div className="backdrop-blur-md bg-white/30 dark:bg-gray-800/20 rounded-t-2xl border-b border-gray-200/50 dark:border-indigo-900/50 sticky top-0 z-10 shadow-lg">
+              <nav className="flex space-x-1 p-2">
+                <button
+                  onClick={() => setActiveTab('browse')}
+                  className={`flex-1 px-4 py-2 rounded-xl transition-all ${
+                    activeTab === 'browse'
+                      ? 'bg-blue-500 text-white shadow-lg'
+                      : 'hover:bg-white/50 dark:hover:bg-gray-700/50'
+                  }`}
+                >
+                  Browse News
+                </button>
+                <button
+                  onClick={() => setActiveTab('article')}
+                  className={`flex-1 px-4 py-2 rounded-xl transition-all ${
+                    activeTab === 'article'
+                      ? 'bg-blue-500 text-white shadow-lg'
+                      : 'hover:bg-white/50 dark:hover:bg-gray-700/50'
+                  }`}
+                >
+                  Text Summary
+                </button>
+                <button
+                  onClick={() => setActiveTab('video')}
+                  className={`flex-1 px-4 py-2 rounded-xl transition-all ${
+                    activeTab === 'video'
+                      ? 'bg-blue-500 text-white shadow-lg'
+                      : 'hover:bg-white/50 dark:hover:bg-gray-700/50'
+                  }`}
+                >
+                  Video Summary
+                </button>
+              </nav>
+            </div>
 
-  const clearInput = () => {
-    setUrl('');
-  };
-
-  const VerificationBadge = ({ isVerified }: { isVerified: boolean }) => (
+            {activeTab === 'browse' && <NewsFeed onSelectArticle={handleNewsArticleSelect} />}
+            {activeTab === 'article' && summaryData && !error && (
+              <div className="bg-white/80 dark:bg-gray-800/50 rounded-2xl shadow-xl p-8 backdrop-blur-lg mt-8 border border-gray-200/30 dark:border-indigo-900/30">
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-2xl font-semibold text-gray-800 dark:text-white flex items-center">
+                    <svg className="w-6 h-6 mr-2 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                    Summary
+                  </h2>
+                  {summaryData?.sourceMetadata && (
     <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm ${
-      isVerified ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300'
+                      summaryData.sourceMetadata.isVerified ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300'
     }`}>
-      {isVerified ? (
+                      {summaryData.sourceMetadata.isVerified ? (
         <>
           <svg className="w-4 h-4 mr-1.5" fill="currentColor" viewBox="0 0 20 20">
             <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"/>
@@ -119,11 +175,59 @@ export default function Home() {
         </>
       )}
     </span>
-  );
+                  )}
+                </div>
+                <div className="prose dark:prose-invert max-w-none">
+                  <p className="text-lg">{summaryData.summary}</p>
+                </div>
+                <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="bg-white/50 dark:bg-gray-800/30 rounded-lg p-4">
+                    <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Source Information</h3>
+                    <dl className="space-y-1">
+                      <div className="flex justify-between">
+                        <dt className="text-gray-600 dark:text-gray-300">Author</dt>
+                        <dd className="font-medium text-gray-900 dark:text-white">{summaryData.sourceMetadata.author}</dd>
+                      </div>
+                      <div className="flex justify-between">
+                        <dt className="text-gray-600 dark:text-gray-300">Published</dt>
+                        <dd className="font-medium text-gray-900 dark:text-white">{summaryData.sourceMetadata.publishDate}</dd>
+                      </div>
+                      <div className="flex justify-between">
+                        <dt className="text-gray-600 dark:text-gray-300">Domain</dt>
+                        <dd className="font-medium text-gray-900 dark:text-white">{summaryData.sourceMetadata.domain}</dd>
+                      </div>
+                    </dl>
+                  </div>
+                  <div className="bg-white/50 dark:bg-gray-800/30 rounded-lg p-4">
+                    <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">AI Analysis Metrics</h3>
+                    <dl className="space-y-1">
+                      <div className="flex justify-between">
+                        <dt className="text-gray-600 dark:text-gray-300">Confidence Score</dt>
+                        <dd className="font-medium text-gray-900 dark:text-white">{summaryData.aiMetrics.confidenceScore}%</dd>
+                      </div>
+                      <div className="flex justify-between">
+                        <dt className="text-gray-600 dark:text-gray-300">Processing Time</dt>
+                        <dd className="font-medium text-gray-900 dark:text-white">{summaryData.aiMetrics.processingTime}s</dd>
+                      </div>
+                      <div className="flex justify-between">
+                        <dt className="text-gray-600 dark:text-gray-300">Word Count</dt>
+                        <dd className="font-medium text-gray-900 dark:text-white">{summaryData.aiMetrics.wordCount}</dd>
+                      </div>
+                    </dl>
+                  </div>
+                </div>
+              </div>
+            )}
+            {activeTab === 'video' && <VideoGenerator url={url} />}
+          </>
+        );
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-indigo-950 dark:via-purple-950 dark:to-blue-950 bg-noise">
-      <div className="max-w-7xl mx-auto px-4 py-8">
+      <div className="max-w-7xl mx-auto px-4 py-8 relative">
+        <NavMenu onNavigate={handleNavigate} />
         <header className="mb-8 text-center">
           <h1 className="text-4xl md:text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-500 to-purple-600 dark:from-blue-400 dark:to-purple-400 mb-3">
             AI News Summariser
@@ -134,121 +238,9 @@ export default function Home() {
         </header>
 
         <main>
-          <div className="backdrop-blur-md bg-white/30 dark:bg-gray-800/20 rounded-t-2xl border-b border-gray-200/50 dark:border-indigo-900/50 sticky top-0 z-10 shadow-lg">
-            <nav className="flex space-x-1 p-2">
-              <button
-                onClick={() => setActiveTab('browse')}
-                className={`flex-1 px-4 py-2 rounded-xl transition-all ${
-                  activeTab === 'browse'
-                    ? 'bg-blue-500 text-white shadow-lg'
-                    : 'hover:bg-white/50 dark:hover:bg-gray-700/50'
-                }`}
-              >
-                Browse News
-              </button>
-              <button
-                onClick={() => setActiveTab('article')}
-                className={`flex-1 px-4 py-2 rounded-xl transition-all ${
-                  activeTab === 'article'
-                    ? 'bg-blue-500 text-white shadow-lg'
-                    : 'hover:bg-white/50 dark:hover:bg-gray-700/50'
-                }`}
-              >
-                Text Summary
-              </button>
-              <button
-                onClick={() => setActiveTab('video')}
-                className={`flex-1 px-4 py-2 rounded-xl transition-all ${
-                  activeTab === 'video'
-                    ? 'bg-blue-500 text-white shadow-lg'
-                    : 'hover:bg-white/50 dark:hover:bg-gray-700/50'
-                }`}
-              >
-                Video Summary
-              </button>
-              <button
-                onClick={() => setActiveTab('newsletter')}
-                className={`flex-1 px-4 py-2 rounded-xl transition-all ${
-                  activeTab === 'newsletter'
-                    ? 'bg-blue-500 text-white shadow-lg'
-                    : 'hover:bg-white/50 dark:hover:bg-gray-700/50'
-                }`}
-              >
-                Newsletter
-              </button>
-            </nav>
-          </div>
+          {renderContent()}
+        </main>
 
-          {/* Content Area - Enhanced glass effect */}
-          <div className="backdrop-blur-md bg-white/40 dark:bg-gray-800/20 rounded-b-2xl shadow-xl border border-gray-200/30 dark:border-indigo-900/30">
-            <div className="p-6">
-              {activeTab === 'browse' ? (
-                <NewsFeed onSelectArticle={handleNewsArticleSelect} />
-              ) : activeTab === 'video' ? (
-                <VideoGenerator url={url} />
-              ) : activeTab === 'newsletter' ? (
-                <NewsletterPreferences userId="default-user" />
-              ) : (
-                <div className="space-y-6">
-                  <form onSubmit={handleSubmit} className="space-y-4">
-                    <div>
-                      <label 
-                        htmlFor="url" 
-                        className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2"
-                      >
-                        {activeTab === 'article' ? 'Article URL' : 'News Article URL'}
-                      </label>
-                      <div className="relative group">
-                        <input
-                          type="url"
-                          id="url"
-                          value={url}
-                          onChange={(e) => setUrl(e.target.value)}
-                          placeholder={activeTab === 'article' ? "Paste article URL here" : "Paste news article URL for video summary"}
-                          className="w-full p-4 bg-white/50 dark:bg-gray-800/50 border border-gray-200/50 dark:border-indigo-800/50 rounded-xl 
-                                   focus:ring-2 focus:ring-blue-500 focus:border-transparent
-                                   transition-all duration-200 group-hover:bg-white/70 dark:group-hover:bg-gray-700/40
-                                   placeholder-gray-400 text-lg shadow-inner"
-                          required
-                        />
-                        {url && (
-                          <button
-                            type="button"
-                            onClick={clearInput}
-                            className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
-                          >
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                    <button
-                      type="submit"
-                      disabled={loading}
-                      className="w-full bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-500 dark:to-purple-500 text-white py-4 px-6 
-                               rounded-xl text-lg font-medium hover:opacity-90 transition-all duration-200
-                               disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed
-                               transform hover:-translate-y-0.5 active:translate-y-0 shadow-lg"
-                    >
-                      {loading ? (
-                        <span className="flex items-center justify-center">
-                          <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                          </svg>
-                          {activeTab === 'article' ? 'Analyzing & Summarising...' : 'Generating Video...'}
-                        </span>
-                      ) : (activeTab === 'article' ? 'Summarise' : 'Generate Video')}
-                    </button>
-                  </form>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* URL Selection Modal */}
           {showUrlModal && (
             <div className="fixed inset-0 bg-black bg-opacity-70 backdrop-blur-sm flex items-center justify-center z-50">
               <div className="bg-white dark:bg-gray-800/90 rounded-xl p-6 max-w-md w-full mx-4 shadow-2xl border border-gray-200/50 dark:border-indigo-900/50">
@@ -301,125 +293,6 @@ export default function Home() {
               )}
             </div>
           )}
-
-          {/* Article Summary View */}
-          {activeTab === 'article' && summaryData && !error && (
-            <div className="bg-white/80 dark:bg-gray-800/50 rounded-2xl shadow-xl p-8 backdrop-blur-lg mt-8 border border-gray-200/30 dark:border-indigo-900/30">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-semibold text-gray-800 dark:text-white flex items-center">
-                  <svg className="w-6 h-6 mr-2 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                  </svg>
-                  Summary
-                </h2>
-                {summaryData?.sourceMetadata && (
-                  <VerificationBadge isVerified={summaryData.sourceMetadata.isVerified} />
-                )}
-              </div>
-
-              <div className="mb-6 p-4 bg-gray-50 dark:bg-gray-900/60 rounded-xl shadow-inner">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                  <div className="flex flex-col">
-                    <span className="text-gray-500 dark:text-gray-400">Source</span>
-                    <span className="font-medium text-gray-900 dark:text-gray-100">
-                      {summaryData.sourceMetadata?.domain || 'Unknown'}
-                    </span>
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="text-gray-500 dark:text-gray-400">Author</span>
-                    <span className="font-medium text-gray-900 dark:text-gray-100">
-                      {summaryData.sourceMetadata?.author || 'Unknown'}
-                    </span>
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="text-gray-500 dark:text-gray-400">Published</span>
-                    <span className="font-medium text-gray-900 dark:text-gray-100">
-                      {summaryData.sourceMetadata?.publishDate || 'Unknown'}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-gray-50 dark:bg-gray-900/60 rounded-xl p-6 shadow-inner">
-                <p className="text-gray-800 dark:text-gray-200 leading-relaxed mb-6">
-                  {summaryData.summary}
-                </p>
-                
-                <div className="border-t border-gray-200 dark:border-gray-700/50 pt-4 mt-4">
-                  <div className="flex items-center justify-between text-sm">
-                    <div className="flex items-center">
-                      <span className="text-gray-500 dark:text-gray-400 mr-2">AI Confidence Score:</span>
-                      <div className="flex items-center">
-                        <div className="w-24 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                          <div 
-                            className="h-full bg-gradient-to-r from-blue-500 to-purple-500"
-                            style={{ width: `${summaryData.aiMetrics?.confidenceScore || 0}%` }}
-                          />
-                        </div>
-                        <span className="ml-2 font-medium text-gray-700 dark:text-gray-300">
-                          {summaryData.aiMetrics?.confidenceScore || 0}%
-                        </span>
-                      </div>
-                    </div>
-                    <span className="text-gray-500 dark:text-gray-400">
-                      Words: {summaryData.aiMetrics?.wordCount || 0}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Video Summary View */}
-          {activeTab === 'video' && videoGenerated && !error && (
-            <div className="bg-white/80 dark:bg-gray-800/50 rounded-2xl shadow-xl p-8 backdrop-blur-lg mt-8 border border-gray-200/30 dark:border-indigo-900/30">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-semibold text-gray-800 dark:text-white flex items-center">
-                  <svg className="w-6 h-6 mr-2 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
-                  </svg>
-                  Video Summary
-                </h2>
-              </div>
-
-              <div className="aspect-w-16 aspect-h-9 rounded-xl overflow-hidden shadow-lg">
-                <video 
-                  className="w-full h-full object-cover"
-                  controls
-                  src={videoUrl}
-                  poster="/video-thumbnail.jpg"
-                >
-                  Your browser does not support the video tag.
-                </video>
-              </div>
-
-              <div className="mt-4 flex justify-end">
-                <a
-                  href={videoUrl}
-                  download="news-summary.mp4"
-                  className="inline-flex items-center px-4 py-2 text-sm font-medium text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
-                >
-                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
-                  </svg>
-                  Download Video
-                </a>
-              </div>
-            </div>
-          )}
-
-          {/* Empty State - Only show for Article tab */}
-          {activeTab === 'article' && !summaryData && !loading && !error && (
-            <div className="bg-white/80 dark:bg-gray-800/50 rounded-2xl shadow-xl p-8 backdrop-blur-lg mt-8 border border-gray-200/30 dark:border-indigo-900/30">
-              <div className="flex flex-col items-center justify-center h-[200px] text-gray-400 dark:text-gray-500">
-                <svg className="w-12 h-12 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                </svg>
-                <p className="text-lg">Enter a URL to get an authenticated summary</p>
-              </div>
-            </div>
-          )}
-        </main>
       </div>
     </div>
   );
