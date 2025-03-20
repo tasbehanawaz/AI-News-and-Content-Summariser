@@ -10,24 +10,34 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'User ID is required' }, { status: 400 });
     }
 
+    // Validate required fields
+    if (!Array.isArray(topics)) {
+      return NextResponse.json({ error: 'Topics must be an array' }, { status: 400 });
+    }
+
+    if (!Array.isArray(days)) {
+      return NextResponse.json({ error: 'Days must be an array' }, { status: 400 });
+    }
+
+    // Create or update preferences
     const preferences = await prisma.newsletterPreferences.upsert({
       where: { userId },
       update: {
         topics,
-        frequency,
-        time,
+        frequency: frequency || 'daily',
+        time: time || '09:00',
         days,
-        notificationMethod,
-        enabled,
+        notificationMethod: notificationMethod || 'email',
+        enabled: enabled ?? true,
       },
       create: {
         userId,
         topics,
-        frequency,
-        time,
+        frequency: frequency || 'daily',
+        time: time || '09:00',
         days,
-        notificationMethod,
-        enabled,
+        notificationMethod: notificationMethod || 'email',
+        enabled: enabled ?? true,
       },
     });
 

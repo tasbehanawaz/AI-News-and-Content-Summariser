@@ -13,6 +13,16 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model User {
+  id                    String                @id @default(cuid())
+  email                 String                @unique
+  name                  String?
+  newsletterPreferences NewsletterPreferences?
+  newsletterErrors      NewsletterError[]
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+}
+
 model Summary {
   id              String         @id @default(cuid())
   createdAt       DateTime       @default(now())
@@ -56,24 +66,35 @@ model VideoSummary {
 }
 
 model NewsletterPreferences {
-  id                String   @id @default(cuid())
-  userId            String   @unique
-  topics            String[]
-  frequency         String
-  time              String
-  days              String[]
-  notificationMethod String
-  enabled           Boolean  @default(false)
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  id                 String   @id @default(cuid())
+  userId             String   @unique
+  user               User     @relation(fields: [userId], references: [id])
+  enabled            Boolean  @default(true)
+  topics             String[]
+  frequency          String   @default("daily")
+  time               String   @default("09:00")
+  days               String[] @default(["Monday"])
+  notificationMethod String   @default("email")
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 }
 
 model Article {
   id          String   @id @default(cuid())
   title       String
   content     String   @db.Text
-  url         String
+  source      String?
+  author      String?
+  publishedAt DateTime?
   topic       String
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+}
+
+model NewsletterError {
+  id        String   @id @default(cuid())
+  userId    String
+  error     String
+  timestamp DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
 }

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { FormControl, InputLabel, MenuItem, Select, Switch, Button, Chip, Box, TextField } from '@mui/material';
+import { FormControl, InputLabel, MenuItem, Select, Switch, Button, Chip, Box, TextField, Alert, Snackbar } from '@mui/material';
 
 const TOPICS = [
   'Technology',
@@ -12,7 +12,7 @@ const TOPICS = [
   'Entertainment',
   'Politics',
   'World News'
-];
+] as const;
 
 const DAYS = [
   'Monday',
@@ -22,14 +22,24 @@ const DAYS = [
   'Friday',
   'Saturday',
   'Sunday'
-];
+] as const;
 
 interface NewsletterPreferencesProps {
   userId: string;
+  initialPreferences?: {
+    email: string;
+    topics: string[];
+    frequency: 'daily' | 'weekly';
+    time: string;
+    days: string[];
+    notificationMethod: 'email' | 'sms' | 'both';
+    enabled: boolean;
+  };
 }
 
-export default function NewsletterPreferences({ userId }: NewsletterPreferencesProps) {
-  const [preferences, setPreferences] = useState({
+export default function NewsletterPreferences({ userId, initialPreferences }: NewsletterPreferencesProps) {
+  const [preferences, setPreferences] = useState(initialPreferences || {
+    email: '',
     topics: [] as string[],
     frequency: 'daily',
     time: '09:00',
@@ -38,8 +48,78 @@ export default function NewsletterPreferences({ userId }: NewsletterPreferencesP
     enabled: false
   });
 
+  const [loading, setLoading] = useState(false);
+  const [snackbar, setSnackbar] = useState<{
+    open: boolean;
+    message: string;
+    severity: 'success' | 'error' | 'info';
+  }>({
+    open: false,
+    message: '',
+    severity: 'info'
+  });
+
+  const validateEmail = (email: string) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  const validatePreferences = () => {
+    if (!preferences.email || !validateEmail(preferences.email)) {
+      setSnackbar({
+        open: true,
+        message: 'Please enter a valid email address',
+        severity: 'error'
+      });
+      return false;
+    }
+
+    if (preferences.topics.length === 0) {
+      setSnackbar({
+        open: true,
+        message: 'Please select at least one topic',
+        severity: 'error'
+      });
+      return false;
+    }
+
+    if (preferences.frequency === 'weekly' && preferences.days.length === 0) {
+      setSnackbar({
+        open: true,
+        message: 'Please select at least one day for weekly delivery',
+        severity: 'error'
+      });
+      return false;
+    }
+
+    return true;
+  };
+
   const handleSubmit = async () => {
+    if (!validatePreferences()) {
+      return;
+    }
+
+    setLoading(true);
     try {
+      // Create or update user first
+      const userResponse = await fetch('/api/user', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          id: userId,
+          email: preferences.email,
+        }),
+      });
+
+      if (!userResponse.ok) {
+        const errorData = await userResponse.json();
+        throw new Error(errorData.error || 'Failed to save user');
+      }
+
+      // Then save newsletter preferences
       const response = await fetch('/api/newsletter/preferences', {
         method: 'POST',
         headers: {
@@ -47,18 +127,34 @@ export default function NewsletterPreferences({ userId }: NewsletterPreferencesP
         },
         body: JSON.stringify({
           userId,
-          ...preferences
+          topics: preferences.topics,
+          frequency: preferences.frequency,
+          time: preferences.time,
+          days: preferences.days,
+          notificationMethod: preferences.notificationMethod,
+          enabled: preferences.enabled
         }),
       });
 
       if (!response.ok) {
-        throw new Error('Failed to save preferences');
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to save preferences');
       }
 
-      alert('Newsletter preferences saved successfully!');
+      setSnackbar({
+        open: true,
+        message: 'Newsletter preferences saved successfully!',
+        severity: 'success'
+      });
     } catch (error) {
       console.error('Error saving preferences:', error);
-      alert('Failed to save preferences. Please try again.');
+      setSnackbar({
+        open: true,
+        message: error instanceof Error ? error.message : 'Failed to save preferences',
+        severity: 'error'
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -67,9 +163,27 @@ export default function NewsletterPreferences({ userId }: NewsletterPreferencesP
       <h2 className="text-2xl font-semibold mb-6 text-gray-800 dark:text-white">Newsletter Preferences</h2>
       
       <div className="space-y-6">
+        {/* Email Input */}
+        <div>
+          <h3 className="text-lg font-medium mb-2 text-gray-700 dark:text-gray-200">Email Address</h3>
+          <TextField
+            type="email"
+            value={preferences.email}
+            onChange={(e) => setPreferences({ ...preferences, email: e.target.value })}
+            fullWidth
+            required
+            placeholder="Enter your email address"
+            error={preferences.email !== '' && !validateEmail(preferences.email)}
+            helperText={preferences.email !== '' && !validateEmail(preferences.email) ? 'Please enter a valid email address' : ''}
+          />
+        </div>
+
         {/* Topics Selection */}
         <div>
-          <h3 className="text-lg font-medium mb-2 text-gray-700 dark:text-gray-200">Topics of Interest</h3>
+          <h3 className="text-lg font-medium mb-2 text-gray-700 dark:text-gray-200">
+            Topics of Interest
+            <span className="text-sm text-gray-500 ml-2">(Select at least one)</span>
+          </h3>
           <Box display="flex" flexWrap="wrap" gap={1}>
             {TOPICS.map((topic) => (
               <Chip
@@ -94,7 +208,7 @@ export default function NewsletterPreferences({ userId }: NewsletterPreferencesP
           <Select
             value={preferences.frequency}
             label="Frequency"
-            onChange={(e) => setPreferences({ ...preferences, frequency: e.target.value as string })}
+            onChange={(e) => setPreferences({ ...preferences, frequency: e.target.value as 'daily' | 'weekly' })}
           >
             <MenuItem value="daily">Daily</MenuItem>
             <MenuItem value="weekly">Weekly</MenuItem>
@@ -121,7 +235,10 @@ export default function NewsletterPreferences({ userId }: NewsletterPreferencesP
         {/* Days Selection (for weekly) */}
         {preferences.frequency === 'weekly' && (
           <div>
-            <h3 className="text-lg font-medium mb-2 text-gray-700 dark:text-gray-200">Delivery Days</h3>
+            <h3 className="text-lg font-medium mb-2 text-gray-700 dark:text-gray-200">
+              Delivery Days
+              <span className="text-sm text-gray-500 ml-2">(Select at least one)</span>
+            </h3>
             <Box display="flex" flexWrap="wrap" gap={1}>
               {DAYS.map((day) => (
                 <Chip
@@ -147,7 +264,7 @@ export default function NewsletterPreferences({ userId }: NewsletterPreferencesP
           <Select
             value={preferences.notificationMethod}
             label="Notification Method"
-            onChange={(e) => setPreferences({ ...preferences, notificationMethod: e.target.value as string })}
+            onChange={(e) => setPreferences({ ...preferences, notificationMethod: e.target.value as 'email' | 'sms' | 'both' })}
           >
             <MenuItem value="email">Email</MenuItem>
             <MenuItem value="sms">SMS</MenuItem>
@@ -170,11 +287,27 @@ export default function NewsletterPreferences({ userId }: NewsletterPreferencesP
           variant="contained"
           color="primary"
           onClick={handleSubmit}
+          disabled={loading}
           className="w-full mt-6"
         >
-          Save Preferences
+          {loading ? 'Saving...' : 'Save Preferences'}
         </Button>
       </div>
+
+      {/* Snackbar for notifications */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+      >
+        <Alert
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
+          severity={snackbar.severity}
+          sx={{ width: '100%' }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </div>
   );
 } 

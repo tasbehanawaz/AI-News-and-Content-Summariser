@@ -2,13 +2,16 @@
   "name": "ai-news-and-content-summariser",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "test-db": "ts-node scripts/test-db.ts",
-    "test-summarize": "ts-node scripts/test-summarize.ts"
+    "test-db": "tsx scripts/test-db.ts",
+    "test-summarize": "tsx scripts/test-summarize.ts",
+    "newsletter": "tsx watch scripts/newsletterCron.ts",
+    "fetch-articles": "tsx watch scripts/fetchAndStoreArticles.ts"
   },
   "dependencies": {
     "@date-io/date-fns": "^3.2.1",
@@ -61,6 +64,7 @@
     "prisma": "^5.10.2",
     "tailwindcss": "^3.4.1",
     "ts-node": "^10.9.2",
+    "tsx": "^4.19.3",
     "typescript": "^5.8.2"
   }
 }

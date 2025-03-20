@@ -1,13 +1,11 @@
-interface Article {
-  title: string;
-  content: string;
-  url: string;
-}
+import { Article } from '@prisma/client';
 
-interface Summary {
+export interface Summary {
   title: string;
   content: string;
-  originalUrl: string;
+  source?: string;
+  author?: string;
+  publishedAt?: string;
 }
 
 async function summarizeWithHuggingFace(text: string): Promise<string> {
@@ -44,12 +42,12 @@ async function summarizeWithHuggingFace(text: string): Promise<string> {
 }
 
 export async function summarizeArticles(articles: Article[]): Promise<Summary[]> {
-  return Promise.all(articles.map(async (article) => {
-    const summary = await summarizeWithHuggingFace(article.content);
-    return {
-      title: article.title,
-      content: summary,
-      originalUrl: article.url,
-    };
+  // For now, we'll just return a simplified version of the articles
+  return articles.map(article => ({
+    title: article.title,
+    content: article.content,
+    source: article.source || undefined,
+    author: article.author || undefined,
+    publishedAt: article.publishedAt?.toISOString()
   }));
 } 
