@@ -146,10 +146,36 @@ async function fetchAndSummarizeArticle(url: string): Promise<{ summary: string 
       }
 
       const data = await response.json();
-      console.log(`Summary generated successfully, length: ${data.summary.length} characters`);
+      let summary = data.summary;
+      
+      // Verify the summary isn't garbled
+      if (summary) {
+        console.log(`Summary generated, verifying quality`);
+        
+        // Check for garbled text (many words without vowels)
+        const words = summary.split(/\s+/);
+        const garbledWordCount = words.filter((word: string) => 
+          word.length > 7 && !/[aeiou]/i.test(word)
+        ).length;
+        const garbledRatio = garbledWordCount / words.length;
+        
+        // Check if summary has proper sentence structure
+        const hasProperSentences = /[.!?]\s+[A-Z]/.test(summary) || 
+                                 (summary.split(/[.!?]/).length > 1 && summary.length > 100);
+        
+        if (garbledRatio > 0.1 || !hasProperSentences) {
+          console.log('Detected garbled summary, using fallback approach');
+          
+          // Instead of trying to fetch article content separately,
+          // just use a generic response since we already have the summarizer
+          summary = "This article discusses important news and current events. For more detailed information, please read the full article.";
+        }
+      }
+      
+      console.log(`Summary finalized, length: ${summary.length} characters`);
       
       return {
-        summary: data.summary
+        summary: summary
       };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';

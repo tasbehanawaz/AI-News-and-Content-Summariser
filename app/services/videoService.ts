@@ -62,10 +62,52 @@ export class VideoService {
       }
       console.log('HEYGEN_API_KEY is set:', !!process.env.HEYGEN_API_KEY);
 
-      // Sanitize and truncate the text
-      const sanitizedText = config.text
-        .replace(/[’‘"”]/g, "'")   // Replace curly quotes with straight quotes
-        .slice(0, 200);            // Truncate to 200 characters (adjust if needed)
+      // Extensive text cleanup and sanitation
+      let sanitizedText = config.text
+        .replace(/[''""]/g, "'")   // Replace curly quotes with straight quotes
+        .replace(/\s+/g, ' ')      // Normalize spacing
+        .replace(/[^\x20-\x7E\n]/g, '') // Remove non-printable characters
+        .trim();
+
+      // Check if the text is garbled (many long words without vowels)
+      const words = sanitizedText.split(/\s+/);
+      const garbledWordCount = words.filter(word => 
+        word.length > 7 && !/[aeiou]/i.test(word)
+      ).length;
+      const garbledRatio = garbledWordCount / words.length;
+      
+      if (garbledRatio > 0.1 || sanitizedText.length < 20) {
+        console.log('Detected garbled or invalid text, using fallback text');
+        sanitizedText = "This article discusses the latest news and developments. Please read the full article for more details.";
+      }
+      
+      // Ensure text isn't too long for the API
+      sanitizedText = sanitizedText.slice(0, 1000);
+      
+      // Format text into proper sentences if needed
+      if (!/[.!?]\s+[A-Z]/.test(sanitizedText) && sanitizedText.length > 100) {
+        // Try to create sentences from the text
+        let formattedText = '';
+        let currentSentence = '';
+        let wordCount = 0;
+        
+        for (const word of sanitizedText.split(/\s+/)) {
+          currentSentence += (wordCount === 0 ? word.charAt(0).toUpperCase() + word.slice(1) : ' ' + word);
+          wordCount++;
+          
+          if (wordCount >= 10 || word.endsWith(',')) {
+            formattedText += currentSentence + '. ';
+            currentSentence = '';
+            wordCount = 0;
+          }
+        }
+        
+        if (currentSentence) {
+          formattedText += currentSentence + '.';
+        }
+        
+        sanitizedText = formattedText.trim();
+      }
 
       console.log('Sanitized text:', sanitizedText);
 

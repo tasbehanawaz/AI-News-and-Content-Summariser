@@ -139,7 +139,7 @@ export default function VideoGenerator({ url }: VideoGeneratorProps) {
           } else {
             throw new Error('Video URL is not accessible');
           }
-        } catch (videoError) {
+        } catch {
           setError({
             message: 'Video is still processing. Please try again in a few moments.',
             retryable: true
