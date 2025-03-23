@@ -237,6 +237,7 @@ export default function Home() {
                             placeholder="https://example.com/article"
                             className="flex-1 rounded-lg border border-gray-300 dark:border-gray-600 bg-white/50 dark:bg-gray-800/50 px-4 py-2 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
                             required
+                            disabled={isLoading}
                           />
                           <button
                             type="submit"
@@ -255,6 +256,27 @@ export default function Home() {
                         </div>
                       </div>
                     </form>
+                    
+                    {isLoading && (
+                      <div className="mt-8 bg-white/80 dark:bg-gray-800/50 rounded-2xl shadow-xl p-8 backdrop-blur-lg border border-gray-200/30 dark:border-indigo-900/30">
+                        <div className="flex flex-col items-center justify-center p-8 space-y-4">
+                          <div className="w-16 h-16 border-t-4 border-b-4 border-blue-500 rounded-full animate-spin"></div>
+                          <p className="text-lg font-medium text-gray-700 dark:text-gray-300">Generating summary...</p>
+                          <p className="text-sm text-gray-500 dark:text-gray-400 text-center max-w-md">
+                            We&apos;re analyzing the article and creating a concise, easy-to-read summary. This may take a few moments.
+                          </p>
+                          <div className="w-full max-w-md mt-2">
+                            <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                              <div className="h-full bg-blue-500 rounded-full animate-pulse"></div>
+                            </div>
+                            <div className="flex justify-between mt-1 text-xs text-gray-500">
+                              <span>Extracting content</span>
+                              <span>Finalizing summary</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                     
                     {error && (
                       <div className="mt-6 bg-red-50 dark:bg-red-900/30 border-l-4 border-red-500 p-6 rounded-lg shadow-md space-y-3">
@@ -280,7 +302,7 @@ export default function Home() {
                   </div>
                 </div>
 
-                {summaryData && (
+                {!isLoading && summaryData && (
                   <div className="mt-8 bg-white/80 dark:bg-gray-800/50 rounded-2xl shadow-xl p-8 backdrop-blur-lg border border-gray-200/30 dark:border-indigo-900/30">
                     <div className="flex items-center justify-between mb-6">
                       <h2 className="text-2xl font-semibold text-gray-800 dark:text-white flex items-center">
@@ -354,8 +376,43 @@ export default function Home() {
 
                     {/* Summary Content */}
                     <div className="prose dark:prose-invert max-w-none bg-white/30 dark:bg-gray-800/30 rounded-lg p-6">
-                      <h3 className="text-lg font-medium text-gray-800 dark:text-white mb-4">Summary</h3>
-                      <p className="text-gray-700 dark:text-gray-300 leading-relaxed">{summaryData.summary}</p>
+                      <div className="flex justify-between items-center mb-4">
+                        <h3 className="text-lg font-medium text-gray-800 dark:text-white">Summary</h3>
+                        <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded dark:bg-blue-900 dark:text-blue-300">
+                          Concise Summary
+                        </span>
+                      </div>
+                      
+                      {summaryData.aiMetrics?.confidenceScore < 0.7 && (
+                        <div className="bg-yellow-50 dark:bg-yellow-900/20 border-l-4 border-yellow-400 p-4 mb-4 rounded text-sm">
+                          <p className="font-medium text-yellow-800 dark:text-yellow-300">Note:</p>
+                          <p className="text-yellow-700 dark:text-yellow-200">
+                            We had some difficulty generating a high-quality summary for this article. 
+                            What you&apos;re seeing is our best effort based on the article&apos;s content.
+                          </p>
+                        </div>
+                      )}
+                      
+                      <p className="text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-line">
+                        {summaryData.summary}
+                      </p>
+                      
+                      <div className="flex justify-end mt-4">
+                        <button 
+                          className="text-sm text-blue-600 dark:text-blue-400 hover:underline flex items-center"
+                          onClick={() => {
+                            if (summaryData.sourceMetadata?.domain) {
+                              window.open(`https://${summaryData.sourceMetadata.domain}`, '_blank');
+                            }
+                          }}
+                          disabled={!summaryData.sourceMetadata?.domain}
+                        >
+                          <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                          </svg>
+                          Read full article
+                        </button>
+                      </div>
                     </div>
                   </div>
                 )}

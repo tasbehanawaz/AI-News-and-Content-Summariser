@@ -85,7 +85,7 @@ export async function POST(req: Request) {
 
     let summary: string = '';
     let aiMetrics: AiMetrics | null = null;
-
+    
     if (!process.env.HUGGINGFACE_API_KEY) {
       summary = `This is a placeholder summary. Add your Hugging Face API key for real summaries.`;
       aiMetrics = { confidenceScore: 85, processingTime: 0.5, wordCount: 150 };
@@ -101,6 +101,122 @@ export async function POST(req: Request) {
       } catch (error) {
         console.error('❌ Summarization error:', error);
         return NextResponse.json({ error: 'Failed to generate summary' }, { status: 500 });
+      }
+    }
+
+    // Final quality check to prevent any potential garbled text from reaching the frontend
+    const isGarbledSummary = isGarbledText(summary);
+    if (isGarbledSummary) {
+      console.error('❌ Quality check failed: Summary appears to be garbled:', summary);
+      
+      // Create a fallback summary from the first few sentences of the content
+      const sentences = contentToSummarize.match(/[^.!?]+[.!?]+/g) || [];
+      if (sentences.length > 0) {
+        // Get complete sentences for the fallback
+        const sentenceCount = Math.min(sentences.length, 3); // Reduced to 3 sentences for brevity
+        const selectedSentences = sentences.slice(0, sentenceCount);
+        
+        // Format the sentences properly
+        let fallbackSummary = selectedSentences.join(' ');
+        
+        // Clean up the fallback summary
+        fallbackSummary = fallbackSummary
+          .replace(/\s+/g, ' ')
+          .trim();
+          
+        // Ensure it's not too long
+        if (fallbackSummary.length > 300) {
+          // Find the last complete sentence that fits within the limit
+          const truncatedSentences = [];
+          let currentLength = 0;
+          
+          for (const sentence of selectedSentences) {
+            if (currentLength + sentence.length <= 280) {
+              truncatedSentences.push(sentence);
+              currentLength += sentence.length + 1; // +1 for the space
+            } else {
+              break;
+            }
+          }
+          
+          if (truncatedSentences.length === 0) {
+            // If even the first sentence is too long, truncate it
+            fallbackSummary = selectedSentences[0].substring(0, 277) + '...';
+          } else {
+            fallbackSummary = truncatedSentences.join(' ');
+          }
+        }
+        
+        summary = fallbackSummary;
+        console.log('Using emergency fallback for garbled text - first sentences of article');
+      } else {
+        summary = "We couldn't generate a proper summary for this article. Please try a different article or try again later.";
+      }
+      
+      // Adjust metrics for fallback summary
+      if (aiMetrics) {
+        aiMetrics.confidenceScore = Math.max(0.5, aiMetrics.confidenceScore * 0.7);
+        aiMetrics.wordCount = summary.split(/\s+/).length;
+      }
+    } else {
+      // Even if not garbled, fix any spacing issues and ensure conciseness
+      summary = fixTextSpacing(summary);
+      
+      // If summary is too long, truncate it while preserving complete sentences
+      if (summary.length > 300) {
+        // Try to truncate at a sentence boundary
+        const sentences = summary.match(/[^.!?]+[.!?]+/g) || [];
+        
+        if (sentences.length > 0) {
+          let conciseSummary = '';
+          let sentenceIndex = 0;
+          
+          // Ensure we keep complete sentences only
+          while (sentenceIndex < sentences.length && (conciseSummary.length + sentences[sentenceIndex].length + 1) <= 300) {
+            conciseSummary += (sentenceIndex > 0 ? ' ' : '') + sentences[sentenceIndex];
+            sentenceIndex++;
+          }
+          
+          // If we couldn't even fit the first sentence, truncate it with ellipsis
+          if (conciseSummary.length === 0 && sentences.length > 0) {
+            conciseSummary = sentences[0]?.substring(0, 297) + '...' || 'Summary unavailable.';
+          }
+          
+          summary = conciseSummary;
+        } else {
+          // If we can't find sentence boundaries, just truncate with ellipsis
+          summary = summary.substring(0, 297) + '...';
+        }
+        
+        // Update metrics
+        if (aiMetrics) {
+          aiMetrics.wordCount = summary.split(/\s+/).length;
+        }
+      }
+    }
+
+    // Final check to ensure we have complete sentences
+    if (summary) {
+      // Check if summary ends mid-sentence (ends with a word character but not a period)
+      if (/\w+\s*$/.test(summary) && !/[.!?]$/.test(summary)) {
+        console.log('Summary appears to end abruptly:', summary);
+        
+        // Option 1: Try to find the last complete sentence
+        const lastSentenceMatch = summary.match(/^(.*?[.!?])[^.!?]*$/);
+        if (lastSentenceMatch && lastSentenceMatch[1]) {
+          // Use the last complete sentence
+          summary = lastSentenceMatch[1].trim();
+          console.log('Fixed to end at last complete sentence:', summary);
+        } else {
+          // Option 2: Add an ellipsis to indicate truncation
+          summary = summary.trim() + '...';
+          console.log('Added ellipsis to indicate truncation:', summary);
+        }
+        
+        // Update metrics
+        if (aiMetrics) {
+          aiMetrics.wordCount = summary.split(/\s+/).length;
+        }
       }
     }
 
@@ -229,19 +345,20 @@ async function generateSummary(text: string, type: string, maxRetries = 3, initi
     cleanedText = lastSentence ? lastSentence[0] : truncated;
   }
 
-  const prompt = `Generate a comprehensive summary of the following text. Format your response as complete, well-structured paragraphs with clear sentences. Include the main points and key details of the text. Maintain a logical flow between ideas:\n\n${cleanedText}\n\nSummary:`;
+  // Use prompt that specifically asks for a concise, short summary
+  const prompt = `Generate a concise, easy-to-read summary of the following text in 3-4 complete sentences. Focus on the main points only and use simple language. Make sure to complete your thoughts and provide a coherent summary that stands on its own:\n\n${cleanedText}\n\nSummary:`;
   let attempt = 0;
 
   while (attempt < maxRetries) {
     try {
       const parameters: ModelParameters = {
-        max_length: 300,           // Increased max length
-        min_length: 30,           // Reduced min length
+        max_length: 150,           // Reduced max length for more concise summaries
+        min_length: 30,           // Minimum length for a reasonable summary
         do_sample: true,          // Enable sampling for more natural text
-        temperature: 0.7,         // Increased temperature for more variety
-        top_p: 0.9,              // Added top_p sampling
-        length_penalty: 1.5,      // Adjusted length penalty
-        num_beams: 5,            // Increased beam search
+        temperature: 0.7,         // Keep moderate temperature
+        top_p: 0.9,               // Added top_p sampling
+        length_penalty: 1.0,      // Adjusted length penalty to avoid unnecessarily long summaries
+        num_beams: 5,             // Increased beam search
         early_stopping: true,
         repetition_penalty: 1.2,  // Add repetition penalty to avoid repetitive phrases
         no_repeat_ngram_size: 3   // Prevent 3-grams from repeating
@@ -336,168 +453,8 @@ async function generateSummary(text: string, type: string, maxRetries = 3, initi
         throw new Error('Failed to extract summary from API response');
       }
 
-      // Final cleaning and validation of the summary
-      summaryText = summaryText
-        .trim()
-        .replace(/^Summary:?\s*/i, '')
-        .replace(/^This article\s+/i, 'The article ')
-        .replace(/\s+/g, ' ')
-        .replace(/[^\x20-\x7E\n]/g, '')
-        .trim();
-
-      // Check if the summary is a jumbled mess of words (no proper sentences)
-      const hasProperSentences = /[.!?]\s+[A-Z]/.test(summaryText) || // Checks for sentence endings followed by capital letters
-                                (summaryText.split(/[.!?]/).length > 1 && summaryText.length > 100); // Or multiple sentence endings and reasonable length
-      
-      // Check for garbled text by counting the ratio of long words without vowels
-      const words = summaryText.split(/\s+/);
-      const garbledWordCount = words.filter(word => 
-        word.length > 7 && !/[aeiou]/i.test(word)
-      ).length;
-      const garbledRatio = garbledWordCount / words.length;
-      const isGarbled = garbledRatio > 0.1 || // More than 10% garbled words
-                         (words.length > 20 && !hasProperSentences); // Long text without proper sentences
-      
-      if (isGarbled) {
-        console.log('Detected garbled text, trying fallback model');
-        
-        // Try to use the fallback model if this is the first attempt
-        if (attempt === 0) {
-          try {
-            // Use a different model with different parameters
-            const fallbackResponse = await fetch(
-              `https://api-inference.huggingface.co/models/${fallbackModelId}`,
-              {
-                method: 'POST',
-                headers: {
-                  'Authorization': `Bearer ${apiKey}`,
-                  'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ 
-                  inputs: `Summarize the following text in a concise way: ${cleanedText.substring(0, 1000)}`,
-                  parameters: {
-                    max_length: 300,
-                    min_length: 50,
-                    do_sample: false,       // Disable sampling for more deterministic output
-                    num_beams: 4,           // Use beam search
-                    top_k: 50,              // Restrict to top 50 tokens
-                    temperature: 0.3,       // Lower temperature for more focused output
-                    no_repeat_ngram_size: 3 // Avoid repetitive phrases
-                  }
-                })
-              }
-            );
-            
-            if (fallbackResponse.ok) {
-              const fallbackResult = await fallbackResponse.json();
-              console.log('Fallback model response:', JSON.stringify(fallbackResult, null, 2));
-              
-              // Extract the text from the fallback model response
-              let fallbackText = '';
-              if (Array.isArray(fallbackResult) && fallbackResult.length > 0) {
-                fallbackText = fallbackResult[0].generated_text || '';
-              } else if (typeof fallbackResult === 'object' && fallbackResult !== null) {
-                fallbackText = fallbackResult.generated_text || fallbackResult.summary_text || '';
-              }
-              
-              if (fallbackText && fallbackText.length > 50) {
-                // Clean the fallback text
-                fallbackText = fallbackText
-                  .trim()
-                  .replace(/^Summarize the following text[^:]*:\s*/i, '')
-                  .replace(/\s+/g, ' ')
-                  .trim();
-                
-                // Verify it's not garbled
-                const fallbackWords = fallbackText.split(/\s+/);
-                const fallbackGarbledCount = fallbackWords.filter(word => 
-                  word.length > 7 && !/[aeiou]/i.test(word)
-                ).length;
-                
-                if (fallbackGarbledCount / fallbackWords.length < 0.05) {
-                  console.log('Using fallback model summary');
-                  return {
-                    summary: fallbackText,
-                    confidenceScore: 0.75
-                  };
-                }
-              }
-            }
-          } catch (fallbackError) {
-            console.error('Error using fallback model:', fallbackError);
-            // Continue with the original text extraction fallback
-          }
-        }
-        
-        // If fallback model fails or this is a retry, use text extraction
-        console.log('Using text extraction as fallback');
-        
-        // Create a simplified summary from the original text instead
-        let simpleSummary = '';
-        
-        // Extract the first 3-5 sentences from the original text as a simple summary
-        const originalSentences = cleanedText.match(/[^.!?]+[.!?]+/g) || [];
-        if (originalSentences.length > 0) {
-          const sentenceCount = Math.min(originalSentences.length, 5);
-          simpleSummary = originalSentences.slice(0, sentenceCount).join(' ');
-          
-          // Make sure it's not too long
-          if (simpleSummary.length > 500) {
-            simpleSummary = simpleSummary.substring(0, 497) + '...';
-          }
-          
-          // Add a disclaimer
-          simpleSummary = "Summary: " + simpleSummary;
-          
-          console.log('Using fallback summary method with first few sentences of the article');
-          summaryText = simpleSummary;
-        } else {
-          // If we can't extract sentences, create a generic message
-          summaryText = "This article discusses various topics. Please read the full article for more details.";
-        }
-      } else if (!hasProperSentences) {
-        // Try to reformat by adding sentence breaks if it's just a series of words
-        const words = summaryText.split(/\s+/);
-        if (words.length > 20) { // Only attempt to fix longer jumbled summaries
-          // Create sentences of 8-12 words each for better readability
-          let reformatted = '';
-          let currentSentence = '';
-          let wordCount = 0;
-          
-          for (const word of words) {
-            currentSentence += (wordCount === 0 ? word.charAt(0).toUpperCase() + word.slice(1) : ' ' + word);
-            wordCount++;
-            
-            if (wordCount >= 10 || // Create reasonably sized sentences
-                word.endsWith(',') || // Use commas as natural breaking points
-                reformatted.length + currentSentence.length > 400) { // Prevent overly long sentences
-              
-              reformatted += currentSentence + '. ';
-              currentSentence = '';
-              wordCount = 0;
-            }
-          }
-          
-          if (currentSentence) {
-            reformatted += currentSentence + '.';
-          }
-          
-          summaryText = reformatted.trim();
-        } else {
-          // For shorter summaries, just ensure it ends with a period
-          if (!/[.!?]$/.test(summaryText)) {
-            summaryText += '.';
-          }
-        }
-      } else {
-        // Add period if missing at the end for well-formed summaries
-        if (!/[.!?]$/.test(summaryText)) {
-          summaryText += '.';
-        }
-      }
-
-      // Ensure first letter is capitalized
-      summaryText = summaryText.charAt(0).toUpperCase() + summaryText.slice(1);
+      // Use a more robust text cleaning process to fix spacing issues
+      summaryText = fixTextSpacing(summaryText);
 
       // More lenient validation
       if (summaryText.length < 20) { // Reduced minimum length
@@ -528,4 +485,105 @@ async function generateSummary(text: string, type: string, maxRetries = 3, initi
   }
 
   throw new Error('Failed to generate summary after maximum retries');
+}
+
+/**
+ * Helper function to fix common text spacing issues in the model output
+ */
+function fixTextSpacing(text: string): string {
+  if (!text) return '';
+  
+  // Step 1: Normalize basic whitespace
+  let cleanedText = text.trim().replace(/\s+/g, ' ');
+  
+  // Step 2: Fix run-together words by adding spaces where capital letters appear mid-word
+  // This handles cases like "RegardsDuring" -> "Regards During"
+  cleanedText = cleanedText.replace(/([a-z])([A-Z])/g, '$1 $2');
+  
+  // Step 3: Remove common prefixes added by models
+  cleanedText = cleanedText
+    .replace(/^Summary:\s*/i, '')
+    .replace(/^Here is a summary of the text:\s*/i, '')
+    .replace(/^The summary of the article is:\s*/i, '');
+  
+  // Step 4: Fix words that are improperly concatenated without spaces
+  // Look for patterns where lowercase ends and either number or uppercase starts
+  cleanedText = cleanedText.replace(/([a-z])(\d+)/g, '$1 $2');
+  
+  // Step 5: Fix non-spaced punctuation
+  cleanedText = cleanedText
+    .replace(/([.,!?])([A-Za-z0-9])/g, '$1 $2')  // Add space after punctuation
+    .replace(/\s+([.,!?])/g, '$1')               // Remove space before punctuation
+    .replace(/\.{3,}/g, '...')                   // Normalize ellipses
+    .replace(/\s{2,}/g, ' ');                    // Remove any double spaces created
+    
+  // Step 6: Split on unusual character sequences that might indicate merged words
+  const strangePatterns = [
+    /([a-z]{2,})(\d{2,})/g,       // Word followed immediately by multiple digits
+    /([a-z])([A-Z]{2,})/g,        // Lowercase letter followed by multiple uppercase
+    /([A-Za-z])([^\w\s])/g,       // Letter followed by symbol
+    /([^\w\s])([A-Za-z])/g        // Symbol followed by letter
+  ];
+  
+  strangePatterns.forEach(pattern => {
+    cleanedText = cleanedText.replace(pattern, '$1 $2');
+  });
+  
+  // Step 7: Fix common symbols and ensure spaces around them
+  cleanedText = cleanedText
+    .replace(/\/\//g, '/')           // Fix doubled slashes
+    .replace(/([^\s])(https?:)/gi, '$1 $2')  // Fix URLs without spaces before them
+    .replace(/(\w)(\()/g, '$1 $2')   // Add space before opening parenthesis
+    .replace(/(\))(\w)/g, '$1 $2');  // Add space after closing parenthesis
+  
+  // Step 8: Clean up after fixes (remove any double spaces created)
+  cleanedText = cleanedText.replace(/\s{2,}/g, ' ').trim();
+  
+  // Step 9: Ensure the text ends with proper punctuation
+  if (!/[.!?]$/.test(cleanedText)) {
+    cleanedText += '.';
+  }
+  
+  // Step 10: Ensure first letter is capitalized
+  cleanedText = cleanedText.charAt(0).toUpperCase() + cleanedText.slice(1);
+  
+  return cleanedText;
+}
+
+/**
+ * Helper function to detect garbled text outside the regular generation flow
+ * This serves as a final quality check before sending the summary to the client
+ */
+function isGarbledText(text: string): boolean {
+  if (!text || text.length < 20) return true;
+  
+  // Check for proper sentence structure
+  const hasProperSentences = /[.!?]\s+[A-Z]/.test(text) || 
+                            (text.split(/[.!?]/).length > 1 && text.length > 100);
+  
+  // Check for garbled words (long words without vowels)
+  const words = text.split(/\s+/);
+  const garbledWordCount = words.filter(word => 
+    word.length > 7 && !/[aeiou]/i.test(word)
+  ).length;
+  
+  const garbledRatio = garbledWordCount / words.length;
+  const hasGarbledWords = garbledRatio > 0.05; // Lower threshold for final check (5%)
+  
+  // Check for repetitive patterns that might indicate model failure
+  const repeatedPhrases = text.match(/(.{10,50})(?=.*\1)/g);
+  const hasRepeatedPhrases = repeatedPhrases ? repeatedPhrases.length > 1 : false;
+  
+  // Check for run-together words (words without spaces)
+  const avgWordLength = words.reduce((sum, word) => sum + word.length, 0) / words.length;
+  const hasRunTogetherWords = avgWordLength > 12; // Most English words are shorter than this
+  
+  // Check for unusual character sequences that might indicate garbled text
+  const hasStrangeSequences = /[A-Z]{5,}|[a-z]{15,}|\d{4,}/.test(text);
+
+  return (!hasProperSentences) || 
+         hasGarbledWords || 
+         hasRepeatedPhrases || 
+         hasRunTogetherWords || 
+         hasStrangeSequences;
 }
