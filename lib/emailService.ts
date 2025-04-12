@@ -2,6 +2,7 @@ import nodemailer from 'nodemailer';
 import { prisma } from './prisma.js';
 import { Summary } from './summarizer.js';
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 interface NewsletterSummary {
   title: string;
   content: string;
@@ -10,42 +11,33 @@ interface NewsletterSummary {
   publishedAt?: string;
 }
 
-// Configure email transporter with improved settings
+// Configure email transporter with SendGrid settings
 const transporter = nodemailer.createTransport({
   host: process.env.EMAIL_HOST,
   port: parseInt(process.env.EMAIL_PORT || '587'),
-  secure: process.env.EMAIL_PORT === '465', // true for 465, false for other ports
+  secure: false, // SendGrid requires TLS
   auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASSWORD,
+    user: process.env.EMAIL_USER, // 'apikey' for SendGrid
+    pass: process.env.EMAIL_PASSWORD, // SendGrid API Key
   },
-  // Add DKIM support if configured
-  ...(process.env.DKIM_PRIVATE_KEY && {
-    dkim: {
-      domainName: process.env.EMAIL_DOMAIN || '',
-      keySelector: 'default',
-      privateKey: process.env.DKIM_PRIVATE_KEY,
-    }
-  }),
-  // Improve TLS settings
   tls: {
     rejectUnauthorized: true,
     minVersion: 'TLSv1.2'
-  },
-  // Add pool configuration to manage connections
-  pool: true,
-  maxConnections: 5,
-  maxMessages: 100,
-  rateDelta: 1000,
-  rateLimit: 5,
+  }
 });
 
-// Verify transporter configuration
+// Verify transporter configuration on startup
 transporter.verify(function (error) {
   if (error) {
-    console.error('Email service configuration error:', error);
+    console.error('SendGrid configuration error:', error);
+    console.error('Email configuration details:', {
+      host: process.env.EMAIL_HOST,
+      port: process.env.EMAIL_PORT,
+      user: 'apikey', // Always 'apikey' for SendGrid
+      from: process.env.EMAIL_FROM
+    });
   } else {
-    console.log('Email service is ready to send messages');
+    console.log('SendGrid email service is ready');
   }
 });
 
@@ -61,14 +53,14 @@ async function retryOperation<T>(
       return await operation();
     } catch (error) {
       lastError = error as Error;
-      console.warn(`Attempt ${attempt} failed:`, error);
+      console.error(`SendGrid attempt ${attempt} failed:`, error);
       if (attempt < maxRetries) {
         await new Promise(resolve => setTimeout(resolve, delay * attempt));
       }
     }
   }
   
-  throw lastError || new Error('Operation failed after retries');
+  throw lastError || new Error('SendGrid operation failed after retries');
 }
 
 export async function sendEmail(userId: string, content: string): Promise<void> {
@@ -81,31 +73,48 @@ export async function sendEmail(userId: string, content: string): Promise<void> 
     throw new Error('User email not found');
   }
 
+  const fromEmail = process.env.EMAIL_FROM;
+  if (!fromEmail) {
+    throw new Error('Sender email address not configured');
+  }
+
   const mailOptions = {
     from: {
-      name: process.env.EMAIL_FROM_NAME || 'AI News Summariser',
-      address: process.env.EMAIL_FROM || 'noreply@ainewssummariser.com'
+      name: 'AI News Summariser',
+      address: fromEmail
     },
     to: user.email,
     subject: 'Your AI News Digest',
     html: content,
-    // Add headers to improve deliverability
+    text: content.replace(/<[^>]*>/g, ''),
     headers: {
-      'List-Unsubscribe': `<${process.env.NEXT_PUBLIC_APP_URL}/preferences>, <mailto:unsubscribe@${process.env.EMAIL_DOMAIN}>`,
+      'X-SMTPAPI': JSON.stringify({
+        category: ['newsletter'],
+        unique_args: {
+          userId: userId
+        }
+      }),
+      'List-Unsubscribe': `<${process.env.BASE_URL}/preferences>, <mailto:unsubscribe@${fromEmail.split('@')[1]}>`,
       'Precedence': 'bulk',
-      'X-Auto-Response-Suppress': 'OOF, AutoReply',
-      'X-Report-Abuse': `Please report abuse here: ${process.env.NEXT_PUBLIC_APP_URL}/report-abuse`,
-      'X-Mailer': 'AI News Summariser Newsletter Service'
+      'X-Auto-Response-Suppress': 'OOF, AutoReply'
     },
-    // Add text version for better deliverability
-    text: content.replace(/<[^>]*>/g, ''), // Strip HTML tags for text version
-    // Add message priority
-    priority: 'normal',
-    // Add category for better filtering
-    category: 'newsletter',
+    priority: 'normal' as const
   };
 
-  await transporter.sendMail(mailOptions);
+  try {
+    await retryOperation(() => transporter.sendMail(mailOptions));
+    console.log(`Newsletter sent successfully to ${user.email}`);
+  } catch (error) {
+    console.error('Failed to send newsletter:', error);
+    await prisma.newsletterError.create({
+      data: {
+        userId,
+        error: error instanceof Error ? error.message : 'Unknown SendGrid error',
+        timestamp: new Date()
+      }
+    });
+    throw error;
+  }
 }
 
 // Helper function to format newsletter content

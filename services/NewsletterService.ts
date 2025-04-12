@@ -1,7 +1,7 @@
-import { prisma } from '../lib/prisma.js';
-import { summarizeArticles } from '../lib/summarizer.js';
-import { sendEmail, formatNewsletterEmail } from '../lib/emailService.js';
-import { sendSMS } from '../lib/smsService.js';
+import { prisma } from '../lib/prisma';
+import { summarizeArticles } from '../lib/summarizer';
+import { sendEmail, formatNewsletterEmail } from '../lib/emailService';
+import { sendSMS } from '../lib/smsService';
 
 interface ArticleSummary {
   title: string;

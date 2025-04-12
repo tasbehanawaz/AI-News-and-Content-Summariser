@@ -1,5 +1,5 @@
-import { prisma } from '../lib/prisma.js';
-import { NewsletterService } from '../services/NewsletterService.js';
+import { prisma } from '../lib/prisma';
+import { NewsletterService } from '../services/NewsletterService';
 import cron from 'node-cron';
 
 const newsletterService = new NewsletterService();
@@ -76,8 +76,8 @@ async function sendNewsletters() {
   }
 }
 
-// Run every minute to check for newsletters to send
-cron.schedule('* * * * *', sendNewsletters);
+// Run every hour to check for newsletters to send
+cron.schedule('0 * * * *', sendNewsletters);
 
 console.log('Newsletter cron job started');
 
